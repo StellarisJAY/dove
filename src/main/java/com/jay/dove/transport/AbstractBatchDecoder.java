@@ -129,8 +129,9 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
      * @param ctx context
      * @param in input byteBuf
      * @param out output list
+     * @throws Exception e
      */
-    public abstract void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out);
+    public abstract void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception;
 
     interface Accumulator {
         /**
