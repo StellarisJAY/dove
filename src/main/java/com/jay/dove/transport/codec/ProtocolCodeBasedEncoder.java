@@ -1,5 +1,6 @@
-package com.jay.dove.transport;
+package com.jay.dove.transport.codec;
 
+import com.jay.dove.transport.connection.Connection;
 import com.jay.dove.transport.protocol.Protocol;
 import com.jay.dove.transport.protocol.ProtocolCode;
 import com.jay.dove.transport.protocol.ProtocolManager;
@@ -12,36 +13,40 @@ import io.netty.util.AttributeKey;
 
 /**
  * <p>
- *
+ *  Protocol code based Encoder.
+ *  Encodes a Remoting Command with protocol's encoder.
  * </p>
  *
  * @author Jay
  * @date 2021/12/31 15:04
  */
-public abstract class ProtocolBasedEncoder extends MessageToByteEncoder<Object> {
+public class ProtocolCodeBasedEncoder extends MessageToByteEncoder<Object> {
     /**
      * the default protocol code, if the request is missing a custom one.
      */
     private final ProtocolCode defaultProtocolCode;
 
-    protected ProtocolBasedEncoder(ProtocolCode defaultProtocolCode) {
+    public ProtocolCodeBasedEncoder(ProtocolCode defaultProtocolCode) {
         this.defaultProtocolCode = defaultProtocolCode;
     }
 
     @Override
-    protected void encode(ChannelHandlerContext context, Object o, ByteBuf byteBuf) throws Exception {
+    public void encode(ChannelHandlerContext context, Object o, ByteBuf byteBuf) throws Exception {
         ProtocolCode protocolCode;
-        Attribute<ProtocolCode> attr = context.channel().attr(AttributeKey.valueOf("protocol"));
+        // get protocol code from channel
+        Attribute<ProtocolCode> attr = context.channel().attr(Connection.PROTOCOL);
         if(attr != null){
             protocolCode = attr.get();
         }else{
+            // no protocol code found, use default protocol
             protocolCode = defaultProtocolCode;
         }
-
+        // get the protocol instance
         Protocol protocol = ProtocolManager.getProtocol(protocolCode);
         if(protocol == null){
             throw new EncoderException("unknown protocol, please register protocol to ProtocolManager");
         }
+        // call protocol's encoder
         protocol.getEncoder().encode(context, o, byteBuf);
     }
 }
