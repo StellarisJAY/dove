@@ -1,4 +1,4 @@
-package com.jay.dove.transport;
+package com.jay.dove.transport.codec;
 
 import io.netty.channel.ChannelHandler;
 

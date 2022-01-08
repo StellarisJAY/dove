@@ -1,4 +1,4 @@
-package com.jay.dove.transport;
+package com.jay.dove.transport.codec;
 
 import com.jay.dove.exception.DecoderException;
 import io.netty.buffer.ByteBuf;
@@ -33,6 +33,7 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
         }else{
             buffer = original;
         }
+        // write new data
         buffer.writeBytes(in);
         in.release();
         return buffer;
@@ -51,7 +52,6 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
             RecyclableArrayList out = RecyclableArrayList.newInstance();
             try{
                 ByteBuf data = (ByteBuf) msg;
-
                 if(accumulation == null){
                     accumulation = data;
                 }else{
@@ -144,6 +144,13 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
         ByteBuf accumulate(ByteBufAllocator allocator, ByteBuf in, ByteBuf accumulation);
     }
 
+    /**
+     * expand the byteBuf
+     * @param allocator {@link ByteBufAllocator}
+     * @param buf buffer to expand
+     * @param readable expansion size
+     * @return expanded buffer
+     */
     static ByteBuf expandByteBuf(ByteBufAllocator allocator, ByteBuf buf, int readable){
         ByteBuf oldBuf = buf;
         buf = allocator.buffer(oldBuf.readableBytes() + readable);

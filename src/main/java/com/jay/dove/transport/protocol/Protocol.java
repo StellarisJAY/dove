@@ -1,5 +1,7 @@
 package com.jay.dove.transport.protocol;
 
+import com.jay.dove.transport.command.CommandHandler;
+
 /**
  * <p>
  *  Protocol interface.
@@ -22,5 +24,15 @@ public interface Protocol {
      */
     ProtocolDecoder getDecoder();
 
+    /**
+     * get protocol code
+     * @return {@link ProtocolCode}
+     */
+    ProtocolCode getCode();
 
+    /**
+     * get protocol's command handler
+     * @return {@link CommandHandler}
+     */
+    CommandHandler getCommandHandler();
 }
