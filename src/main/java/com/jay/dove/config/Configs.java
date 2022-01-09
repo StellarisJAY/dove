@@ -2,7 +2,7 @@ package com.jay.dove.config;
 
 /**
  * <p>
- *  Configs of Dove
+ *  Common Configs of Dove
  * </p>
  *
  * @author Jay
@@ -13,19 +13,19 @@ public class Configs {
      * TCP NO DELAY OPTIONS
      */
     public static final String TCP_NODELAY = "dove.tcp.nodelay";
-    public static final String TCP_NODELAY_DEFAULT = "true";
+    public static final boolean TCP_NODELAY_DEFAULT = true;
 
     /**
      * TCP SO BACKLOG OPTION
      */
     public static final String TCP_SO_BACKLOG                        = "bolt.tcp.so.backlog";
-    public static final String TCP_SO_BACKLOG_DEFAULT                = "1024";
+    public static final int TCP_SO_BACKLOG_DEFAULT                = 1024;
 
     /**
      * KEEP ALIVE OPTION
      */
     public static final String TCP_SO_KEEP_ALIVE                        = "bolt.tcp.so.keep-alive";
-    public static final String TCP_SO_KEEP_ALIVE_DEFAULT                = "true";
+    public static final boolean TCP_SO_KEEP_ALIVE_DEFAULT                = true;
 
 
     /**
@@ -46,4 +46,22 @@ public class Configs {
 
     public static final String SERIALIZER = "dove.serializer";
     public static final String SERIALIZER_DEFAULT = "protostuff";
+
+    public static final String DISPATCH_LIST_TO_EXECUTOR = "dove.dispatch_to_executor";
+    public static final boolean DISPATCH_LIST_TO_EXECUTOR_DEFAULT = false;
+
+    public static boolean soKeepAlive(){
+        Boolean keepAlive = ConfigManager.getBoolean(TCP_SO_KEEP_ALIVE);
+        return keepAlive != null ? keepAlive : TCP_SO_KEEP_ALIVE_DEFAULT;
+    }
+
+    public static boolean tcpNoDelay(){
+        Boolean config = ConfigManager.getBoolean(TCP_NODELAY);
+        return config != null ? config : TCP_NODELAY_DEFAULT;
+    }
+
+    public static boolean dispatchListToExecutor(){
+        Boolean config = ConfigManager.getBoolean(DISPATCH_LIST_TO_EXECUTOR);
+        return config != null ? config : DISPATCH_LIST_TO_EXECUTOR_DEFAULT;
+    }
 }

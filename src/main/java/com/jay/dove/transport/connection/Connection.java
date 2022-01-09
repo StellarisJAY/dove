@@ -2,7 +2,6 @@ package com.jay.dove.transport.connection;
 
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.command.RemotingCommand;
-import com.jay.dove.transport.protocol.Protocol;
 import com.jay.dove.transport.protocol.ProtocolCode;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -22,20 +21,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class Connection {
+    /**
+     * connection's channel
+     */
     private final Channel channel;
 
+    /**
+     * future map.
+     * This holds futures from async send
+     */
     private final ConcurrentHashMap<Integer, InvokeFuture> invokeFutureMap = new ConcurrentHashMap<>(256);
 
     public static final AttributeKey<Connection> CONNECTION = AttributeKey.valueOf("connection");
 
     public static final AttributeKey<ProtocolCode> PROTOCOL = AttributeKey.valueOf("protocol");
 
+    /**
+     * Connection status
+     */
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public Connection(Channel channel) {
+    public Connection(Channel channel, ProtocolCode protocolCode) {
         this.channel = channel;
         // associate channel with this connection
         channel.attr(CONNECTION).set(this);
+        channel.attr(PROTOCOL).set(protocolCode);
     }
 
     public boolean isClosed(){
