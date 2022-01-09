@@ -39,7 +39,7 @@ public class ConnectionManager {
     /**
      * Default connections count of a pool
      */
-    public static final int DEFAULT_CONNECTION_COUNT = 10;
+    public static final int DEFAULT_CONNECTION_COUNT = 100;
 
     public ConnectionManager(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
@@ -53,10 +53,10 @@ public class ConnectionManager {
             If more than one thread arrives here, we need to make sure only one thread calls createConnections
          */
         ConnectionPool connectionPool = CONNECTION_MAP.computeIfAbsent(address, key -> {
-            return createConnections(key, DEFAULT_CONNECTION_COUNT, false);
+            return createConnections(key, DEFAULT_CONNECTION_COUNT, true);
         });
         // now we have the connection pool, now is to select a connection from it.
-        return connectionPool.canCreateConnection() ? connectionPool.createAndGetConnection(Configs.connectTimeout()): connectionPool.getConnection();
+        return connectionPool.createAndGetConnection(Configs.connectTimeout());
     }
 
     /**
@@ -68,8 +68,10 @@ public class ConnectionManager {
     public ConnectionPool createConnections(InetSocketAddress address, int count, boolean warmup){
         // create a pool instance
         ConnectionPool connectionPool = new ConnectionPool(address, connectionFactory, new RandomSelectStrategy(), count);
-        // warm up pool using threadPoolExecutor
-        connectionPool.warmUpConnectionPool(asyncConnectExecutor, Configs.connectTimeout());
+        if(warmup){
+            // warm up pool using threadPoolExecutor
+            connectionPool.warmUpConnectionPool(asyncConnectExecutor, Configs.connectTimeout());
+        }
         return connectionPool;
     }
 }
