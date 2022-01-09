@@ -6,7 +6,8 @@ import java.util.Properties;
 
 /**
  * <p>
- *
+ *  Config Manager.
+ *  Holds all configs from dove.properties file.
  * </p>
  *
  * @author Jay

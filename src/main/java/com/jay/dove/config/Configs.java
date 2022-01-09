@@ -2,7 +2,7 @@ package com.jay.dove.config;
 
 /**
  * <p>
- *  Configs of Dove
+ *  Common Configs of Dove
  * </p>
  *
  * @author Jay
