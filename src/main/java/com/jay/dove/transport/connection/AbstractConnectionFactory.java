@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.internal.StringUtil;
 
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 
 /**
  * <p>
@@ -34,10 +35,6 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
      * heart-beat handler
      */
     private final ChannelHandler heartBeatHandler;
-    /**
-     * main handler for connections
-     */
-    private final ChannelHandler handler;
 
     /**
      * protocol code of this connection factory
@@ -48,9 +45,8 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     private final EventLoopGroup worker = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() + 1,
             new NamedThreadFactory("dove-client-worker", true));
 
-    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler handler, ChannelHandler heartBeatHandler) {
+    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler heartBeatHandler) {
         this.codec = codec;
-        this.handler = handler;
         this.protocolCode = protocolCode;
         this.heartBeatHandler = heartBeatHandler;
     }
@@ -75,8 +71,6 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 // codec decoder and encoder
                 pipeline.addLast("decoder", codec.newDecoder());
                 pipeline.addLast("encoder", codec.newEncoder());
-                // main handler
-                pipeline.addLast("handler", handler);
                 // heart-beat handler
 //                pipeline.addLast("heartBeat", heartBeatHandler);
             }
@@ -84,22 +78,13 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     }
 
     @Override
-    public Connection create(String ip, int port, int timeout) throws Exception{
-        // establish connection, get channel
-        Channel channel = doCreateConnection(ip, port, timeout);
-        // create connection, binding protocol code to it
+    public Connection create(InetSocketAddress address, int timeout) throws Exception {
+        Channel channel = doCreateConnection(address, timeout);
         return new Connection(channel, protocolCode);
     }
 
-    /**
-     * establish connection and returns the target channel
-     * @param ip ip
-     * @param port port
-     * @param timeout timeout ms
-     * @return {@link Channel}
-     * @throws Exception exceptions {@link ConnectException}
-     */
-    private Channel doCreateConnection(String ip, int port, int timeout) throws Exception{
+    @Override
+    public Connection create(String ip, int port, int timeout) throws Exception{
         // check arguments
         if(StringUtil.isNullOrEmpty(ip) || port <= 0){
             throw new IllegalArgumentException("invalid socket address");
@@ -107,16 +92,28 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
         if(timeout <= 0){
             throw new IllegalArgumentException("connect timeout must be positive");
         }
+        InetSocketAddress address = new InetSocketAddress(ip, port);
+        return create(address, timeout);
+    }
+
+    /**
+     * establish connection and returns the target channel
+     * @param address address {@link InetSocketAddress}
+     * @param timeout timeout ms
+     * @return {@link Channel}
+     * @throws Exception exceptions {@link ConnectException}
+     */
+    private Channel doCreateConnection(InetSocketAddress address, int timeout) throws Exception{
         // set connect timeout
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout);
-        ChannelFuture future = bootstrap.connect(ip, port);
+        ChannelFuture future = bootstrap.connect(address);
 
         // wait for result
         future.awaitUninterruptibly();
 
         if(!future.isDone()){
             // connect timeout
-            throw new ConnectException("connect timeout, target address: " + ip + ":" + port);
+            throw new ConnectException("connect timeout, target address: " + address);
         }
         if(future.isCancelled()){
             // connect task cancelled

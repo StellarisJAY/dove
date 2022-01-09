@@ -43,12 +43,23 @@ public class Configs {
 
 
     public static final String DEFAULT_CHARSET = "UTF-8";
-
     public static final String SERIALIZER = "dove.serializer";
     public static final String SERIALIZER_DEFAULT = "protostuff";
 
+    /**
+     * dispatch requests to processor-threads or io-threads
+     */
     public static final String DISPATCH_LIST_TO_EXECUTOR = "dove.dispatch_to_executor";
     public static final boolean DISPATCH_LIST_TO_EXECUTOR_DEFAULT = false;
+
+    /**
+     * the timeout value of one connect task
+     */
+    public static final String CONNECT_TIMEOUT = "dove.connect_timeout";
+    public static final int CONNECT_TIMEOUT_DEFAULT = 3000;
+
+    public static final String CONNECT_MAX_RETRY_TIME = "dove.connect_max_retry";
+    public static final int CONNECT_MAX_RETRY_TIME_DEFAULT = 3;
 
     public static boolean soKeepAlive(){
         Boolean keepAlive = ConfigManager.getBoolean(TCP_SO_KEEP_ALIVE);
@@ -63,5 +74,15 @@ public class Configs {
     public static boolean dispatchListToExecutor(){
         Boolean config = ConfigManager.getBoolean(DISPATCH_LIST_TO_EXECUTOR);
         return config != null ? config : DISPATCH_LIST_TO_EXECUTOR_DEFAULT;
+    }
+
+    public static int connectTimeout(){
+        Integer timeout = ConfigManager.getInteger(CONNECT_TIMEOUT);
+        return timeout != null ? timeout : CONNECT_TIMEOUT_DEFAULT;
+    }
+
+    public static int connectMaxRetry(){
+        Integer times = ConfigManager.getInteger(CONNECT_MAX_RETRY_TIME);
+        return times != null ? times : CONNECT_MAX_RETRY_TIME_DEFAULT;
     }
 }
