@@ -39,7 +39,7 @@ public class ConnectionManager {
     /**
      * Default connections count of a pool
      */
-    public static final int DEFAULT_CONNECTION_COUNT = 10;
+    public static final int DEFAULT_CONNECTION_COUNT = 100;
 
     public ConnectionManager(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
@@ -53,7 +53,6 @@ public class ConnectionManager {
             If more than one thread arrives here, we need to make sure only one thread calls createConnections
          */
         ConnectionPool connectionPool = CONNECTION_MAP.computeIfAbsent(address, key -> {
-            System.out.println("submit warm up");
             return createConnections(key, DEFAULT_CONNECTION_COUNT, true);
         });
         // now we have the connection pool, now is to select a connection from it.
