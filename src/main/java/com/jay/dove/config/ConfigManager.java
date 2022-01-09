@@ -14,7 +14,7 @@ import java.util.Properties;
  * @date 2022/01/08 14:34
  */
 public class ConfigManager {
-    private static Properties properties;
+    private static Properties properties = new Properties();
     static{
         try(InputStream inputStream = ConfigManager.class.getClassLoader().getResourceAsStream("dove.properties")){
             properties.load(inputStream);
@@ -29,7 +29,8 @@ public class ConfigManager {
     }
 
     public static Integer getInteger(String name){
-        return Integer.parseInt(properties.getProperty(name));
+        String property = get(name);
+        return property == null ? null : Integer.parseInt(property);
     }
 
     public static String get(String name){
