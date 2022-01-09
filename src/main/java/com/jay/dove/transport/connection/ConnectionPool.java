@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -25,8 +26,7 @@ public class ConnectionPool {
      * connections list
      */
     private final CopyOnWriteArrayList<Connection> connections;
-
-    private int limit;
+    private final int limit;
     /**
      * select strategy
      */
@@ -34,6 +34,8 @@ public class ConnectionPool {
 
     private final ConnectionFactory connectionFactory;
 
+
+    private final Semaphore semaphore;
     /**
      * whether this pool is warming up.
      * If this pool is warming up, other threads can't add new Connection into it.
@@ -44,12 +46,9 @@ public class ConnectionPool {
         this.connectionFactory = connectionFactory;
         this.selectStrategy = selectStrategy;
         this.limit = limit;
-        connections = new CopyOnWriteArrayList<Connection>();
+        connections = new CopyOnWriteArrayList<>();
         this.address = address;
-    }
-
-    public void add(Connection connection){
-        connections.addIfAbsent(connection);
+        semaphore = new Semaphore(limit);
     }
 
     public Connection getConnection(){
@@ -58,19 +57,20 @@ public class ConnectionPool {
     }
 
     public Connection createAndGetConnection(int timeout) throws Exception {
-        log.info("creating new connection");
-        Connection connection = connectionFactory.create(address, timeout);
-        connections.addIfAbsent(connection);
-        return connection;
-    }
-
-    /**
-     * can other thread create connection.
-     * only when pool is not full and no warm-up task is running.
-     * @return boolean
-     */
-    public boolean canCreateConnection(){
-        return connections.size() != limit && !warmingUp.get();
+        // check if it's able to create a connection now
+        if(!warmingUp.get() && semaphore.tryAcquire()){
+            // pool is warming up or full
+            Connection connection = connectionFactory.create(address, timeout);
+            connections.add(connection);
+            return connection;
+        }else{
+            // wait for a connection
+            while(true){
+                if(this.connections.size() > 0){
+                    return getConnection();
+                }
+            }
+        }
     }
 
     /**
@@ -79,6 +79,7 @@ public class ConnectionPool {
      * @param timeout connect timeout
      */
     public void warmUpConnectionPool(ExecutorService executor, int timeout) {
+        warmingUp.set(true);
         Runnable warmUpTask = ()->{
             long startTime = System.currentTimeMillis();
             int retryTimes = 0;
@@ -86,10 +87,11 @@ public class ConnectionPool {
             int maxRetryTimes = Configs.connectMaxRetry();
             for (int cur = connections.size(); cur < limit; cur++){
                 try{
-                    // create one connection
-                    Connection connection = connectionFactory.create(address, timeout);
-                    // save to connection pool
-                    connections.addIfAbsent(connection);
+                    // acquire a semaphore, check whether the pool is full
+                    if(semaphore.tryAcquire()){
+                        Connection connection = connectionFactory.create(address, timeout);
+                        connections.add(connection);
+                    }
                 }catch (Exception e){
                     // retry and check retry times
                     cur --;
