@@ -8,6 +8,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -63,6 +65,18 @@ public class Connection {
                 channel.close().addListener((ChannelFutureListener) future->{
                     log.info("connection closed, status {}, error: {}", future.isSuccess(), future.cause());
                 });
+            }
+        }
+    }
+
+    public void onClose(){
+        Iterator<Map.Entry<Integer, InvokeFuture>> iterator = invokeFutureMap.entrySet().iterator();
+        while(iterator.hasNext()){
+            Map.Entry<Integer, InvokeFuture> entry = iterator.next();
+            iterator.remove();
+            InvokeFuture future = entry.getValue();
+            if(future != null){
+                future.putResponse(null);
             }
         }
     }

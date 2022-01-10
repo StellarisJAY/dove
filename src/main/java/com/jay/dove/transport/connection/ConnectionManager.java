@@ -3,6 +3,7 @@ package com.jay.dove.transport.connection;
 import com.jay.dove.config.Configs;
 import com.jay.dove.transport.connection.strategy.RandomSelectStrategy;
 import com.jay.dove.util.NamedThreadFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.*;
@@ -16,6 +17,7 @@ import java.util.concurrent.*;
  * @author Jay
  * @date 2022/01/08 15:43
  */
+@Slf4j
 public class ConnectionManager {
     /**
      * Connection map, address:Pool
@@ -53,24 +55,25 @@ public class ConnectionManager {
             If more than one thread arrives here, we need to make sure only one thread calls createConnections
          */
         ConnectionPool connectionPool = CONNECTION_MAP.computeIfAbsent(address, key -> {
-            return createConnections(key, DEFAULT_CONNECTION_COUNT, true);
+            return createConnectionPool(key, DEFAULT_CONNECTION_COUNT, 1);
         });
-        // now we have the connection pool, now is to select a connection from it.
-        return connectionPool.createAndGetConnection(Configs.connectTimeout());
+        // now we have the connection pool, select a connection from it.
+        return connectionPool.getConnection();
     }
 
     /**
      * create connection pool for target address.
      * @param address target Address
-     * @param count the count of connections to create
-     * @param warmup true, if you want the background thread to establish all connections now.
      */
-    public ConnectionPool createConnections(InetSocketAddress address, int count, boolean warmup){
+    public ConnectionPool createConnectionPool(InetSocketAddress address, int expectedCount, int syncCreate) {
+        int timeout = Configs.connectTimeout();
         // create a pool instance
-        ConnectionPool connectionPool = new ConnectionPool(address, connectionFactory, new RandomSelectStrategy(), count);
-        if(warmup){
-            // warm up pool using threadPoolExecutor
-            connectionPool.warmUpConnectionPool(asyncConnectExecutor, Configs.connectTimeout());
+        ConnectionPool connectionPool = new ConnectionPool(address, connectionFactory, new RandomSelectStrategy());
+        try {
+            // async heal connection pool to expected count
+            connectionPool.healConnectionPool(asyncConnectExecutor, expectedCount, syncCreate, timeout);
+        } catch (Exception e) {
+            log.error("connection pool creation error", e);
         }
         return connectionPool;
     }
