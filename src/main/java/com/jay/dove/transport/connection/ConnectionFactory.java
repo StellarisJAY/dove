@@ -21,24 +21,6 @@ public interface ConnectionFactory {
 
     /**
      * create a connection
-     * @param ip target ip
-     * @param port target port
-     * @param timeout connect timeout milleSeconds
-     * @return {@link Connection}
-     * @throws Exception exceptions {@link java.net.ConnectException}
-     */
-    Connection create(String ip, int port, int timeout) throws Exception;
-
-    /**
-     * create a connection
-     * @param address address {@link InetSocketAddress}
-     * @param timeout timeout mille seconds
-     * @return {@link Connection}
-     * @throws Exception exceptions {@link java.net.ConnectException}
-     */
-    Connection create(InetSocketAddress address, int timeout) throws Exception;
-    /**
-     * create a connection
      * @param url target url {@link Url}
      * @param timeout timeout mille seconds
      * @return {@link Connection}

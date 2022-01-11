@@ -38,13 +38,17 @@ public class Connection {
 
     public static final AttributeKey<ProtocolCode> PROTOCOL = AttributeKey.valueOf("protocol");
 
+
+    private final String poolKey;
+
     /**
      * Connection status
      */
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public Connection(Channel channel, ProtocolCode protocolCode) {
+    public Connection(Channel channel, ProtocolCode protocolCode, String poolKey) {
         this.channel = channel;
+        this.poolKey = poolKey;
         // associate channel with this connection
         channel.attr(CONNECTION).set(this);
         channel.attr(PROTOCOL).set(protocolCode);
@@ -86,5 +90,9 @@ public class Connection {
         if(invokeFuture != null){
             invokeFuture.putResponse(response);
         }
+    }
+
+    public String getPoolKey() {
+        return poolKey;
     }
 }

@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class ConnectionPool {
-    private final InetSocketAddress address;
+    private final Url url;
     /**
      * connections list
      */
@@ -40,17 +40,10 @@ public class ConnectionPool {
     private final AtomicBoolean warmingUp = new AtomicBoolean(false);
 
     public ConnectionPool(Url url, ConnectionFactory connectionFactory, ConnectionSelectStrategy selectStrategy){
-        this.address = new InetSocketAddress(url.getIp(), url.getPort());
         this.connectionFactory = connectionFactory;
         this.selectStrategy = selectStrategy;
         this.connections = new CopyOnWriteArrayList<>();
-    }
-
-    public ConnectionPool(InetSocketAddress address, ConnectionFactory connectionFactory, ConnectionSelectStrategy selectStrategy) {
-        this.connectionFactory = connectionFactory;
-        this.selectStrategy = selectStrategy;
-        connections = new CopyOnWriteArrayList<>();
-        this.address = address;
+        this.url = url;
     }
 
     public void add(Connection connection){
@@ -63,7 +56,7 @@ public class ConnectionPool {
     }
 
     public Connection createAndGetConnection(int timeout) throws Exception {
-        Connection connection = connectionFactory.create(address, timeout);
+        Connection connection = connectionFactory.create(url, timeout);
         connections.add(connection);
         return connection;
     }
@@ -82,14 +75,14 @@ public class ConnectionPool {
             int maxRetryTimes = Configs.connectMaxRetry();
             for (int cur = connections.size(); cur < expectedCount; cur++){
                 try{
-                    Connection connection = connectionFactory.create(address, timeout);
+                    Connection connection = connectionFactory.create(url, timeout);
                     connections.add(connection);
                 }catch (Exception e){
                     log.error("connection warm up failed", e);
                     break;
                 }
             }
-            log.info("connection pool warm up for {} finished, time used: {}ms", address, (System.currentTimeMillis() - startTime));
+            log.info("connection pool warm up for {} finished, time used: {}ms", url, (System.currentTimeMillis() - startTime));
             // finish warming up
             markAsyncWarmUpDone();
         };

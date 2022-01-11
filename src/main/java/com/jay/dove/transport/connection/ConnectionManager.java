@@ -54,7 +54,6 @@ public class ConnectionManager {
         this.connectionFactory.init();
     }
 
-
     /**
      * create a connection
      * @param url url {@link Url}
@@ -124,6 +123,7 @@ public class ConnectionManager {
 
         @Override
         public ConnectionPool call() throws Exception {
+            // create a pool, using Random Select Strategy temporarily
             ConnectionPool pool = new ConnectionPool(url, connectionFactory, new RandomSelectStrategy());
             int expectedPoolSize = url.getExpectedConnectionCount();
             int connTimeOut = Configs.connectTimeout();
