@@ -1,6 +1,7 @@
 package com.jay.dove.transport.connection;
 
 import com.jay.dove.config.Configs;
+import com.jay.dove.transport.Url;
 import com.jay.dove.transport.codec.Codec;
 import com.jay.dove.transport.protocol.ProtocolCode;
 import com.jay.dove.util.NamedThreadFactory;
@@ -94,6 +95,11 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
         }
         InetSocketAddress address = new InetSocketAddress(ip, port);
         return create(address, timeout);
+    }
+
+    @Override
+    public Connection create(Url url, int timeout) throws Exception {
+        return create(url.getIp(), url.getPort(), timeout);
     }
 
     /**

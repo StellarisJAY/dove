@@ -1,5 +1,7 @@
 package com.jay.dove.transport.connection;
 
+import com.jay.dove.transport.Url;
+
 import java.net.InetSocketAddress;
 
 /**
@@ -35,4 +37,12 @@ public interface ConnectionFactory {
      * @throws Exception exceptions {@link java.net.ConnectException}
      */
     Connection create(InetSocketAddress address, int timeout) throws Exception;
+    /**
+     * create a connection
+     * @param url target url {@link Url}
+     * @param timeout timeout mille seconds
+     * @return {@link Connection}
+     * @throws Exception exceptions {@link java.net.ConnectException}
+     */
+    Connection create(Url url, int timeout) throws Exception;
 }
