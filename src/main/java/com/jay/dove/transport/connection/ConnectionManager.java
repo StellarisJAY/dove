@@ -1,8 +1,11 @@
 package com.jay.dove.transport.connection;
 
 import com.jay.dove.config.Configs;
+import com.jay.dove.transport.Url;
 import com.jay.dove.transport.connection.strategy.RandomSelectStrategy;
+import com.jay.dove.util.FutureTaskUtil;
 import com.jay.dove.util.NamedThreadFactory;
+import com.jay.dove.util.RunStateRecordedFutureTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -24,6 +27,8 @@ public class ConnectionManager {
      * ConcurrentHashMap, because we want all the operations to be Atomic
      */
     private final ConcurrentHashMap<InetSocketAddress, ConnectionPool> CONNECTION_MAP = new ConcurrentHashMap<>(256);
+
+    private final ConcurrentHashMap<String, RunStateRecordedFutureTask<ConnectionPool>> connPoolTasks = new ConcurrentHashMap<>(256);
     /**
      * connection factory, produces connections of the same protocol
      */
@@ -49,32 +54,89 @@ public class ConnectionManager {
         this.connectionFactory.init();
     }
 
-    public Connection getConnection(InetSocketAddress address) throws Exception {
-        /*
-            get the connection pool of this address. Create a new pool if not exist.
-            If more than one thread arrives here, we need to make sure only one thread calls createConnections
-         */
-        ConnectionPool connectionPool = CONNECTION_MAP.computeIfAbsent(address, key -> {
-            return createConnectionPool(key, DEFAULT_CONNECTION_COUNT, 1);
-        });
-        // now we have the connection pool, select a connection from it.
-        return connectionPool.getConnection();
+
+    /**
+     * create a connection
+     * @param url url {@link Url}
+     * @return {@link Connection}
+     * @throws Exception exceptions
+     */
+    public Connection createConnection(Url url) throws Exception {
+        return this.connectionFactory.create(url, Configs.connectTimeout());
     }
 
     /**
-     * create connection pool for target address.
-     * @param address target Address
+     * get a connection from managed connection pool
+     * @param url {@link Url}
+     * @return {@link Connection}
+     * @throws ExecutionException execution exception
+     * @throws InterruptedException Interrupted Exception
      */
-    public ConnectionPool createConnectionPool(InetSocketAddress address, int expectedCount, int syncCreate) {
-        int timeout = Configs.connectTimeout();
-        // create a pool instance
-        ConnectionPool connectionPool = new ConnectionPool(address, connectionFactory, new RandomSelectStrategy());
-        try {
-            // async heal connection pool to expected count
-            connectionPool.healConnectionPool(asyncConnectExecutor, expectedCount, syncCreate, timeout);
-        } catch (Exception e) {
-            log.error("connection pool creation error", e);
+    public Connection getConnection(Url url) throws ExecutionException, InterruptedException {
+        // get connection pool creation task
+        RunStateRecordedFutureTask<ConnectionPool> future = connPoolTasks.get(url.getPoolKey());
+        // get pool from task
+        ConnectionPool connectionPool = FutureTaskUtil.getFutureTaskResult(future);
+        return connectionPool != null ? connectionPool.getConnection() : null;
+    }
+
+    /**
+     * get a connection.
+     * If connection pool absent, create a new connection pool
+     * @param url {@link Url}
+     * @return {@link Connection}
+     */
+    public Connection getAndCreateConnectionIfAbsent(Url url){
+        ConnectionPool pool = getAndCreatePoolIfAbsent(url);
+        return pool != null ? pool.getConnection() : null;
+    }
+
+    /**
+     * get ConnectionPool and create if absent
+     * @param url {@link Url} target url
+     * @return {@link ConnectionPool}
+     */
+    public ConnectionPool getAndCreatePoolIfAbsent(Url url){
+        if(connPoolTasks.get(url.getPoolKey()) == null){
+            // no cached conn pool task
+            RunStateRecordedFutureTask<ConnectionPool> task = new RunStateRecordedFutureTask<>(new CreatePoolCallable(url, 1));
+            // try to put new task into cache
+            if(connPoolTasks.putIfAbsent(url.getPoolKey(), task) == null){
+                // successfully put a task into cache, run task
+                task.run();
+            }
         }
-        return connectionPool;
+        // get cached task
+        RunStateRecordedFutureTask<ConnectionPool> connTask = connPoolTasks.get(url.getPoolKey());
+        // get task result
+        return FutureTaskUtil.getFutureTaskResult(connTask);
+    }
+
+    class CreatePoolCallable implements Callable<ConnectionPool>{
+
+        private final Url url;
+        private final int syncCreateConnCount;
+
+        public CreatePoolCallable(Url url, int syncCreateConnCount) {
+            this.url = url;
+            this.syncCreateConnCount = syncCreateConnCount;
+        }
+
+        @Override
+        public ConnectionPool call() throws Exception {
+            ConnectionPool pool = new ConnectionPool(url, connectionFactory, new RandomSelectStrategy());
+            int expectedPoolSize = url.getExpectedConnectionCount();
+            int connTimeOut = Configs.connectTimeout();
+            if(syncCreateConnCount > 0){
+                // sync create some connections
+                for (int i = 0; i < syncCreateConnCount; i++){
+                    Connection connection = connectionFactory.create(url, connTimeOut);
+                    pool.add(connection);
+                }
+            }
+            // async heal connection pool
+            pool.healConnectionPool(asyncConnectExecutor, expectedPoolSize, connTimeOut);
+            return pool;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.jay.dove.transport.connection;
 
 import com.jay.dove.config.Configs;
+import com.jay.dove.transport.Url;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -31,17 +32,29 @@ public class ConnectionPool {
     private final ConnectionSelectStrategy selectStrategy;
 
     private final ConnectionFactory connectionFactory;
+
     /**
      * whether this pool is warming up.
      * If this pool is warming up, other threads can't add new Connection into it.
      */
     private final AtomicBoolean warmingUp = new AtomicBoolean(false);
 
+    public ConnectionPool(Url url, ConnectionFactory connectionFactory, ConnectionSelectStrategy selectStrategy){
+        this.address = new InetSocketAddress(url.getIp(), url.getPort());
+        this.connectionFactory = connectionFactory;
+        this.selectStrategy = selectStrategy;
+        this.connections = new CopyOnWriteArrayList<>();
+    }
+
     public ConnectionPool(InetSocketAddress address, ConnectionFactory connectionFactory, ConnectionSelectStrategy selectStrategy) {
         this.connectionFactory = connectionFactory;
         this.selectStrategy = selectStrategy;
         connections = new CopyOnWriteArrayList<>();
         this.address = address;
+    }
+
+    public void add(Connection connection){
+        this.connections.add(connection);
     }
 
     public Connection getConnection(){
@@ -60,19 +73,7 @@ public class ConnectionPool {
      * @param executor {@link ExecutorService}
      * @param timeout connect timeout
      */
-    public void healConnectionPool(ExecutorService executor, int expectedCount, int syncCreate, int timeout)throws Exception {
-        int currentSize = connections.size();
-
-        if(currentSize > expectedCount){
-            return;
-        }
-        if(syncCreate > 0){
-            for(int i = 0; i < syncCreate; i++){
-                Connection connection = connectionFactory.create(address, timeout);
-                connections.add(connection);
-            }
-        }
-
+    public void healConnectionPool(ExecutorService executor, int expectedCount, int timeout)throws Exception {
         markAsyncWarmUpStart();
         Runnable warmUpTask = ()->{
             long startTime = System.currentTimeMillis();
