@@ -1,5 +1,6 @@
 package com.jay.dove.transport.protocol;
 
+import com.jay.dove.transport.HeartBeatTrigger;
 import com.jay.dove.transport.command.CommandHandler;
 
 /**
@@ -35,4 +36,10 @@ public interface Protocol {
      * @return {@link CommandHandler}
      */
     CommandHandler getCommandHandler();
+
+    /**
+     * get protocol's heart beat trigger
+     * @return {@link HeartBeatTrigger}
+     */
+    HeartBeatTrigger getHeartBeatTrigger();
 }

@@ -5,6 +5,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.Attribute;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -19,6 +20,7 @@ import java.net.SocketAddress;
  * @author Jay
  * @date 2022/01/10 10:47
  */
+@Slf4j
 public class ConnectEventHandler extends ChannelDuplexHandler {
 
     @Override
@@ -52,7 +54,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
+        this.userEventTriggered(ctx, ConnectEvent.EXCEPTION);
         ctx.channel().close();
     }
 
@@ -74,6 +76,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
                 case CONNECT_FAIL:
                 case EXCEPTION:
                 case CLOSE: submitReconnectTask((InetSocketAddress) channel.remoteAddress());
+                            log.warn("connection closed: {}", channel.remoteAddress());
                             onEvent(connection, event);
                             break;
                 default:break;

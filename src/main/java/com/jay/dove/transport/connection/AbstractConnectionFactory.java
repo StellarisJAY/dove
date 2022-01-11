@@ -1,6 +1,8 @@
 package com.jay.dove.transport.connection;
 
 import com.jay.dove.config.Configs;
+import com.jay.dove.transport.HeartBeatHandler;
+import com.jay.dove.transport.Url;
 import com.jay.dove.transport.codec.Codec;
 import com.jay.dove.transport.protocol.ProtocolCode;
 import com.jay.dove.util.NamedThreadFactory;
@@ -8,10 +10,10 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.internal.StringUtil;
 
 import java.net.ConnectException;
-import java.net.InetSocketAddress;
 
 /**
  * <p>
@@ -48,7 +50,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler heartBeatHandler) {
         this.codec = codec;
         this.protocolCode = protocolCode;
-        this.heartBeatHandler = heartBeatHandler;
+        this.heartBeatHandler = new HeartBeatHandler();
     }
 
     /**
@@ -70,50 +72,52 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 ChannelPipeline pipeline = channel.pipeline();
                 // codec decoder and encoder
                 pipeline.addLast("decoder", codec.newDecoder());
-                pipeline.addLast("encoder", codec.newEncoder());
+                // connect event handler
+                pipeline.addLast("connect-event-handler", new ConnectEventHandler());
+
                 // heart-beat handler
-//                pipeline.addLast("heartBeat", heartBeatHandler);
+                if(Configs.tcpIdleState()){
+                    pipeline.addLast("idle-state-handler", new IdleStateHandler(Configs.tcpIdleTime(), Configs.tcpIdleTime(), 0));
+                    pipeline.addLast("heart-beat-handler", heartBeatHandler);
+                }
+                pipeline.addLast("encoder", codec.newEncoder());
             }
         });
     }
 
-    @Override
-    public Connection create(InetSocketAddress address, int timeout) throws Exception {
-        Channel channel = doCreateConnection(address, timeout);
-        return new Connection(channel, protocolCode);
-    }
 
     @Override
-    public Connection create(String ip, int port, int timeout) throws Exception{
+    public Connection create(Url url, int timeout) throws Exception {
         // check arguments
-        if(StringUtil.isNullOrEmpty(ip) || port <= 0){
+        if(StringUtil.isNullOrEmpty(url.getIp()) || url.getPort() <= 0){
             throw new IllegalArgumentException("invalid socket address");
         }
         if(timeout <= 0){
             throw new IllegalArgumentException("connect timeout must be positive");
         }
-        InetSocketAddress address = new InetSocketAddress(ip, port);
-        return create(address, timeout);
+        Channel channel = doCreateConnection(url.getIp(), url.getPort(), timeout);
+        return new Connection(channel, protocolCode, url.getPoolKey());
     }
 
     /**
      * establish connection and returns the target channel
-     * @param address address {@link InetSocketAddress}
+     * @param ip ip
+     * @param port port
      * @param timeout timeout ms
      * @return {@link Channel}
      * @throws Exception exceptions {@link ConnectException}
      */
-    private Channel doCreateConnection(InetSocketAddress address, int timeout) throws Exception{
+    private Channel doCreateConnection(String ip, int port, int timeout) throws Exception{
         // set connect timeout
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout);
-        ChannelFuture future = bootstrap.connect(address);
+        ChannelFuture future = bootstrap.connect(ip, port);
 
         // wait for result
         future.awaitUninterruptibly();
 
         if(!future.isDone()){
             // connect timeout
-            throw new ConnectException("connect timeout, target address: " + address);
+            throw new ConnectException("connect timeout, target address: " + ip + ":" + port);
         }
         if(future.isCancelled()){
             // connect task cancelled

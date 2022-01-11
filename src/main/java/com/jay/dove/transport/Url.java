@@ -38,7 +38,7 @@ public class Url {
      */
     private String poolKey;
 
-    private Map<String, String> properties = new HashMap<>(16);
+    private final Map<String, String> properties = new HashMap<>(16);
 
     public static final String QUERY = "?";
     public static final String EQUALS = "=";
@@ -48,12 +48,6 @@ public class Url {
 
     public Url(String originalUrl) {
         this.originalUrl = originalUrl;
-    }
-
-    public Url(String originalUrl, String ip, int port) {
-        this.originalUrl = originalUrl;
-        this.ip = ip;
-        this.port = port;
     }
 
     public void addProperty(String name, String value){
@@ -70,6 +64,8 @@ public class Url {
         // parse query properties
         String[] queries = originalUrl.substring(queryStart + 1).split(AND);
         url.parseQueries(queries);
+        url.parseArguments();
+        url.parsePoolKey();
         return url;
     }
 
@@ -97,6 +93,11 @@ public class Url {
     }
 
     private void parseArguments(){
+        this.protocol = Integer.parseInt(properties.get("protocol"));
+        this.expectedConnectionCount = Integer.parseInt(properties.get("conn"));
+    }
 
+    private void parsePoolKey(){
+        this.poolKey = ip + ":" + port + protocol;
     }
 }

@@ -18,13 +18,19 @@ public class Configs {
     /**
      * TCP SO BACKLOG OPTION
      */
-    public static final String TCP_SO_BACKLOG                        = "bolt.tcp.so.backlog";
+    public static final String TCP_SO_BACKLOG                        = "dove.tcp.so-backlog";
     public static final int TCP_SO_BACKLOG_DEFAULT                = 1024;
+
+    public static final String TCP_IDLE_STATE = "dove.tcp.idle-state";
+    public static final boolean TCP_IDLE_STATE_DEFAULT = true;
+
+    public static final String TCP_IDLE_TIME = "dove.tcp.idle-time";
+    public static final int TCP_IDLE_TIME_DEFAULT = 10000;
 
     /**
      * KEEP ALIVE OPTION
      */
-    public static final String TCP_SO_KEEP_ALIVE                        = "bolt.tcp.so.keep-alive";
+    public static final String TCP_SO_KEEP_ALIVE                        = "dove.tcp.so-keep-alive";
     public static final boolean TCP_SO_KEEP_ALIVE_DEFAULT                = true;
 
 
@@ -84,5 +90,15 @@ public class Configs {
     public static int connectMaxRetry(){
         Integer times = ConfigManager.getInteger(CONNECT_MAX_RETRY_TIME);
         return times != null ? times : CONNECT_MAX_RETRY_TIME_DEFAULT;
+    }
+
+    public static boolean tcpIdleState(){
+        Boolean state = ConfigManager.getBoolean(TCP_IDLE_STATE);
+        return state != null ? state : TCP_IDLE_STATE_DEFAULT;
+    }
+
+    public static int tcpIdleTime(){
+        Integer time = ConfigManager.getInteger(TCP_IDLE_TIME);
+        return time != null ? time : TCP_IDLE_TIME_DEFAULT;
     }
 }
