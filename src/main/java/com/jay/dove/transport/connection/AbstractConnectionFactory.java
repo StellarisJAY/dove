@@ -38,6 +38,8 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
      */
     private final ChannelHandler heartBeatHandler;
 
+    private final ChannelHandler connectEventHandler;
+
     /**
      * protocol code of this connection factory
      */
@@ -47,10 +49,11 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     private final EventLoopGroup worker = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() + 1,
             new NamedThreadFactory("dove-client-worker", true));
 
-    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler heartBeatHandler) {
+    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler connectEventHandler) {
         this.codec = codec;
         this.protocolCode = protocolCode;
         this.heartBeatHandler = new HeartBeatHandler();
+        this.connectEventHandler = connectEventHandler;
     }
 
     /**
@@ -73,7 +76,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 // codec decoder and encoder
                 pipeline.addLast("decoder", codec.newDecoder());
                 // connect event handler
-                pipeline.addLast("connect-event-handler", new ConnectEventHandler());
+                pipeline.addLast("connect-event-handler", connectEventHandler);
 
                 // heart-beat handler
                 if(Configs.tcpIdleState()){
@@ -96,7 +99,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
             throw new IllegalArgumentException("connect timeout must be positive");
         }
         Channel channel = doCreateConnection(url.getIp(), url.getPort(), timeout);
-        return new Connection(channel, protocolCode, url.getPoolKey());
+        return new Connection(channel, protocolCode, url);
     }
 
     /**

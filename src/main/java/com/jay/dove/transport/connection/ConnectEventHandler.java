@@ -1,5 +1,7 @@
 package com.jay.dove.transport.connection;
 
+import com.jay.dove.config.Configs;
+import com.jay.dove.transport.Url;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,6 +24,10 @@ import java.net.SocketAddress;
  */
 @Slf4j
 public class ConnectEventHandler extends ChannelDuplexHandler {
+
+    private Reconnector reconnector;
+    private ConnectionManager connectionManager;
+
 
     @Override
     public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception {
@@ -46,6 +52,8 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
         if(attr != null){
             Connection connection = attr.get();
             if(connection != null){
+                // remove inactive connection
+                connectionManager.remove(connection);
                 // fires CLOSE Event
                 userEventTriggered(ctx, ConnectEvent.CLOSE);
             }
@@ -75,7 +83,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
                 case CONNECT: onEvent(connection, event);break;
                 case CONNECT_FAIL:
                 case EXCEPTION:
-                case CLOSE: submitReconnectTask((InetSocketAddress) channel.remoteAddress());
+                case CLOSE: submitReconnectTask(connection.getUrl());
                             log.warn("connection closed: {}", channel.remoteAddress());
                             onEvent(connection, event);
                             break;
@@ -89,11 +97,31 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
      * submit a re-connect task
      * @param address Target address
      */
-    private void submitReconnectTask(InetSocketAddress address){
-
+    private void submitReconnectTask(Url url){
+        // check config
+        if(Configs.enableReconnect() && reconnector != null){
+            // do reconnect
+            reconnector.reconnect(url);
+        }
     }
 
     private void onEvent(Connection connection, ConnectEvent event){
 
+    }
+
+    public Reconnector getReconnector() {
+        return reconnector;
+    }
+
+    public void setReconnector(Reconnector reconnector) {
+        this.reconnector = reconnector;
+    }
+
+    public ConnectionManager getConnectionManager() {
+        return connectionManager;
+    }
+
+    public void setConnectionManager(ConnectionManager connectionManager) {
+        this.connectionManager = connectionManager;
     }
 }

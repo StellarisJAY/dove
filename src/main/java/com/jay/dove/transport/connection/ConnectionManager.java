@@ -8,7 +8,6 @@ import com.jay.dove.util.NamedThreadFactory;
 import com.jay.dove.util.RunStateRecordedFutureTask;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.*;
 
 /**
@@ -22,13 +21,10 @@ import java.util.concurrent.*;
  */
 @Slf4j
 public class ConnectionManager {
-    /**
-     * Connection map, address:Pool
-     * ConcurrentHashMap, because we want all the operations to be Atomic
-     */
-    private final ConcurrentHashMap<InetSocketAddress, ConnectionPool> CONNECTION_MAP = new ConcurrentHashMap<>(256);
 
     private final ConcurrentHashMap<String, RunStateRecordedFutureTask<ConnectionPool>> connPoolTasks = new ConcurrentHashMap<>(256);
+
+    private final ConcurrentHashMap<String, FutureTask<Integer>> healTasks = new ConcurrentHashMap<>(256);
     /**
      * connection factory, produces connections of the same protocol
      */
@@ -43,15 +39,30 @@ public class ConnectionManager {
             0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
             new NamedThreadFactory("async-connect-thread", true));
 
-    /**
-     * Default connections count of a pool
-     */
-    public static final int DEFAULT_CONNECTION_COUNT = 100;
-
     public ConnectionManager(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
         // init connection factory
         this.connectionFactory.init();
+    }
+
+    /**
+     * remove a dead connection
+     * @param connection connection
+     */
+    public void remove(Connection connection){
+        String poolKey = connection.getPoolKey();
+        // get connection pool
+        RunStateRecordedFutureTask<ConnectionPool> task = connPoolTasks.get(poolKey);
+        ConnectionPool pool;
+        if(task == null || (pool = FutureTaskUtil.getFutureTaskResult(task)) == null){
+            // connection pool absent
+            log.warn("remove standalone connection {}", connection);
+        }else{
+            // remove connection in pool
+            pool.remove(connection);
+        }
+        // close connection
+        connection.close();
     }
 
     /**
@@ -68,10 +79,8 @@ public class ConnectionManager {
      * get a connection from managed connection pool
      * @param url {@link Url}
      * @return {@link Connection}
-     * @throws ExecutionException execution exception
-     * @throws InterruptedException Interrupted Exception
      */
-    public Connection getConnection(Url url) throws ExecutionException, InterruptedException {
+    public Connection getConnection(Url url) {
         // get connection pool creation task
         RunStateRecordedFutureTask<ConnectionPool> future = connPoolTasks.get(url.getPoolKey());
         // get pool from task
@@ -86,7 +95,7 @@ public class ConnectionManager {
      * @return {@link Connection}
      */
     public Connection getAndCreateConnectionIfAbsent(Url url){
-        ConnectionPool pool = getAndCreatePoolIfAbsent(url);
+        ConnectionPool pool = getConnectionPoolAndCreateIfAbsent(url);
         return pool != null ? pool.getConnection() : null;
     }
 
@@ -95,7 +104,7 @@ public class ConnectionManager {
      * @param url {@link Url} target url
      * @return {@link ConnectionPool}
      */
-    public ConnectionPool getAndCreatePoolIfAbsent(Url url){
+    public ConnectionPool getConnectionPoolAndCreateIfAbsent(Url url){
         if(connPoolTasks.get(url.getPoolKey()) == null){
             // no cached conn pool task
             RunStateRecordedFutureTask<ConnectionPool> task = new RunStateRecordedFutureTask<>(new CreatePoolCallable(url, 1));
@@ -111,7 +120,59 @@ public class ConnectionManager {
         return FutureTaskUtil.getFutureTaskResult(connTask);
     }
 
-    class CreatePoolCallable implements Callable<ConnectionPool>{
+    /**
+     * this method is mainly used to heal connection pool.
+     * But it will also create the pool if absent.
+     * @param url {@link Url}
+     * @throws Exception exceptions from healing task
+     */
+    public void createConnectionPoolAndHealIfNeeded(Url url) throws Exception {
+        // get or create a pool
+        ConnectionPool pool = getConnectionPoolAndCreateIfAbsent(url);
+        if (pool != null) {
+            // heal pool
+            this.healConnectionPool(pool, url);
+        }else{
+            log.warn("heal task failed, pool hasn't been created yet, url:{}", url);
+        }
+    }
+
+    /**
+     * heal connection pool async
+     * @param pool {@link ConnectionPool}
+     * @param url {@link Url}
+     */
+    public void healConnectionPool(ConnectionPool pool, Url url) throws Exception {
+        int originalPoolSize = pool.size();
+        String poolKey = url.getPoolKey();
+        // check if there's an async warm up running & if the pool size is enough
+        if(pool.isAsyncWarmUpDone() && originalPoolSize < url.getExpectedConnectionCount()){
+            FutureTask<Integer> task = healTasks.get(poolKey);
+            // check if there's a running heal task
+            if(task == null){
+                // create a new heal task
+                task = new FutureTask<>(new HealPoolCallable(pool, url.getExpectedConnectionCount()));
+                if(healTasks.putIfAbsent(poolKey, task) == null){
+                    // successfully put into task cache, run heal task
+                    task.run();
+                }
+            }
+            try{
+                // get healing result
+                int sizeAfterHeal = task.get();
+                log.info("connection pool {} healed, expected: {}, current size: {}, increment: {}", poolKey, url.getExpectedConnectionCount(), sizeAfterHeal, (sizeAfterHeal - originalPoolSize));
+            } catch (ExecutionException | InterruptedException e) {
+                log.error("heal connection pool failed, poolKey:  {}",poolKey, e);
+                throw e;
+            }
+            healTasks.remove(poolKey);
+        }
+    }
+
+    /**
+     * create pool task callable
+     */
+    final class CreatePoolCallable implements Callable<ConnectionPool>{
 
         private final Url url;
         private final int syncCreateConnCount;
@@ -137,6 +198,31 @@ public class ConnectionManager {
             // async heal connection pool
             pool.healConnectionPool(asyncConnectExecutor, expectedPoolSize, connTimeOut);
             return pool;
+        }
+    }
+
+    /**
+     * heal connection pool callable
+     * This callable returns pool's size after healing
+     */
+    final class HealPoolCallable implements Callable<Integer>{
+        private final ConnectionPool pool;
+        private final int expectedCount;
+        public HealPoolCallable(ConnectionPool pool, int expectedCount) {
+            this.pool = pool;
+            this.expectedCount = expectedCount;
+        }
+
+        @Override
+        public Integer call() {
+            try{
+                // call connection pool's heal()
+                pool.healConnectionPool(asyncConnectExecutor, expectedCount, Configs.connectTimeout());
+            }catch (Exception e){
+                throw new RuntimeException(e);
+            }
+            // return pool size after healing
+            return pool.size();
         }
     }
 }
