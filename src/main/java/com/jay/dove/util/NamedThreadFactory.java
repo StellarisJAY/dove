@@ -38,4 +38,16 @@ public class NamedThreadFactory implements ThreadFactory {
         }
         return thread;
     }
+
+    public static Thread createThread(Runnable r, String name, boolean isDaemon){
+        Thread thread = new Thread(r, name);
+        // set thread to daemon
+        thread.setDaemon(isDaemon);
+        // set thread priority to normal
+        if(thread.getPriority() != Thread.NORM_PRIORITY){
+            thread.setPriority(Thread.NORM_PRIORITY);
+        }
+        return thread;
+
+    }
 }
