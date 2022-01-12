@@ -67,6 +67,9 @@ public class Configs {
     public static final String CONNECT_MAX_RETRY_TIME = "dove.connect_max_retry";
     public static final int CONNECT_MAX_RETRY_TIME_DEFAULT = 3;
 
+    public static final String ENABLE_RECONNECT = "dove.enable_reconnect";
+    public static final boolean ENABLE_RECONNECT_DEFAULT = true;
+
     public static boolean soKeepAlive(){
         Boolean keepAlive = ConfigManager.getBoolean(TCP_SO_KEEP_ALIVE);
         return keepAlive != null ? keepAlive : TCP_SO_KEEP_ALIVE_DEFAULT;
@@ -100,5 +103,10 @@ public class Configs {
     public static int tcpIdleTime(){
         Integer time = ConfigManager.getInteger(TCP_IDLE_TIME);
         return time != null ? time : TCP_IDLE_TIME_DEFAULT;
+    }
+
+    public static boolean enableReconnect(){
+        Boolean enable = ConfigManager.getBoolean(ENABLE_RECONNECT);
+        return enable != null ? enable : ENABLE_RECONNECT_DEFAULT;
     }
 }

@@ -1,5 +1,6 @@
 package com.jay.dove.transport.connection;
 
+import com.jay.dove.transport.Url;
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.command.RemotingCommand;
 import com.jay.dove.transport.protocol.ProtocolCode;
@@ -41,14 +42,16 @@ public class Connection {
 
     private final String poolKey;
 
+    private final Url url;
     /**
      * Connection status
      */
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public Connection(Channel channel, ProtocolCode protocolCode, String poolKey) {
+    public Connection(Channel channel, ProtocolCode protocolCode, Url url) {
         this.channel = channel;
-        this.poolKey = poolKey;
+        this.poolKey = url.getPoolKey();
+        this.url = url;
         // associate channel with this connection
         channel.attr(CONNECTION).set(this);
         channel.attr(PROTOCOL).set(protocolCode);
@@ -95,4 +98,6 @@ public class Connection {
     public String getPoolKey() {
         return poolKey;
     }
+
+    public Url getUrl(){return url;}
 }

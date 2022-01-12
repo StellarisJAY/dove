@@ -1,10 +1,8 @@
 package com.jay.dove.transport.connection;
 
-import com.jay.dove.config.Configs;
 import com.jay.dove.transport.Url;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +19,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class ConnectionPool {
+    /**
+     * Connection pool's url
+     */
     private final Url url;
     /**
      * connections list
@@ -31,6 +32,9 @@ public class ConnectionPool {
      */
     private final ConnectionSelectStrategy selectStrategy;
 
+    /**
+     * Connection Factory used to create new Connections.
+     */
     private final ConnectionFactory connectionFactory;
 
     /**
@@ -50,11 +54,21 @@ public class ConnectionPool {
         this.connections.add(connection);
     }
 
-    public Connection getConnection(){
-        ArrayList<Connection> candidates = new ArrayList<>(this.connections);
-        return selectStrategy.select(candidates);
+    public void remove(Connection connection){
+        this.connections.remove(connection);
     }
 
+    /**
+     * get a connection using select strategy
+     * @return {@link Connection}
+     */
+    public Connection getConnection(){
+        ArrayList<Connection> snapshot = new ArrayList<>(this.connections);
+        // select a connection
+        return selectStrategy.select(snapshot);
+    }
+
+    @Deprecated
     public Connection createAndGetConnection(int timeout) throws Exception {
         Connection connection = connectionFactory.create(url, timeout);
         connections.add(connection);
@@ -66,39 +80,56 @@ public class ConnectionPool {
      * @param executor {@link ExecutorService}
      * @param timeout connect timeout
      */
-    public void healConnectionPool(ExecutorService executor, int expectedCount, int timeout)throws Exception {
+    public void healConnectionPool(ExecutorService executor, int expectedCount, int timeout) {
         markAsyncWarmUpStart();
         Runnable warmUpTask = ()->{
             long startTime = System.currentTimeMillis();
-            int retryTimes = 0;
-            // max retry times
-            int maxRetryTimes = Configs.connectMaxRetry();
             for (int cur = connections.size(); cur < expectedCount; cur++){
                 try{
+                    // create a connection
                     Connection connection = connectionFactory.create(url, timeout);
+                    // add to pool
                     connections.add(connection);
                 }catch (Exception e){
                     log.error("connection warm up failed", e);
                     break;
                 }
             }
-            log.info("connection pool warm up for {} finished, time used: {}ms", url, (System.currentTimeMillis() - startTime));
+            log.info("connection pool warm up for {} finished, poolSize: {}, expected: {} time used: {}ms", url, connections.size(), expectedCount, (System.currentTimeMillis() - startTime));
             // finish warming up
             markAsyncWarmUpDone();
         };
+        // submit task to executor
         executor.submit(warmUpTask);
     }
 
+    /**
+     * mark Async warm up start.
+     * This method uses CAS of AtomicBoolean, it only tries once.
+     */
     private void markAsyncWarmUpStart(){
-        for(;;){
-            if(warmingUp.compareAndSet(false, true)){
-                break;
-            }
+        if(warmingUp.compareAndSet(false, true)){
+            return;
         }
+        throw new IllegalStateException("warm up already started");
     }
 
+    /**
+     * mark Async warm up done.
+     * This method uses CAS of AtomicBoolean, it only tries once.
+     */
     private void markAsyncWarmUpDone(){
-        warmingUp.set(false);
+        if(warmingUp.compareAndSet(true, false)){
+            return;
+        }
+        throw new IllegalStateException("warm up not started yet");
     }
 
+    public boolean isAsyncWarmUpDone(){
+        return warmingUp.get();
+    }
+
+    public int size(){
+        return connections.size();
+    }
 }

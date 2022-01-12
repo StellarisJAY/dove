@@ -12,12 +12,7 @@ public interface LifeCycle {
     /**
      * start
      */
-    void start();
-
-    /**
-     * init
-     */
-    void init();
+    void startup();
 
     /**
      * stop
@@ -25,8 +20,8 @@ public interface LifeCycle {
     void shutdown();
 
     /**
-     * exception
-     * @param e exception
+     * is started
+     * @return boolean
      */
-    void exceptionCaught(Throwable e);
+    boolean isStarted();
 }
