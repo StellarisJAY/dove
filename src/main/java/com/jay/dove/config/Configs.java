@@ -1,5 +1,8 @@
 package com.jay.dove.config;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 /**
  * <p>
  *  Common Configs of Dove
@@ -48,7 +51,7 @@ public class Configs {
     public static final int    MAX_CONNECTIONS_PER_URL                  = 100 * 10000;
 
 
-    public static final String DEFAULT_CHARSET = "UTF-8";
+    public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
     public static final String SERIALIZER = "dove.serializer";
     public static final String SERIALIZER_DEFAULT = "protostuff";
 

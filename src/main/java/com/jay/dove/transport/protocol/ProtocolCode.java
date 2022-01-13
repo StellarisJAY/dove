@@ -1,6 +1,6 @@
 package com.jay.dove.transport.protocol;
 
-import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * <p>
@@ -11,14 +11,19 @@ import java.util.Arrays;
  * @date 2021/12/31 14:10
  */
 public class ProtocolCode {
-    private final byte[] code;
+    private final short code;
 
-    private ProtocolCode(byte[] code) {
+    private ProtocolCode(short code) {
         this.code = code;
     }
 
-    public static ProtocolCode fromBytes(byte[] bytes){
-        return new ProtocolCode(bytes);
+    public static ProtocolCode fromValue(short code){
+        return new ProtocolCode(code);
+    }
+
+
+    public short value(){
+        return code;
     }
 
     @Override
@@ -30,18 +35,18 @@ public class ProtocolCode {
             return false;
         }
         ProtocolCode protocolCode = (ProtocolCode)obj;
-        return Arrays.equals(protocolCode.code, code);
+        return protocolCode.code == code;
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(code);
+        return Objects.hashCode(code);
     }
 
     @Override
     public String toString() {
         return "ProtocolCode{" +
-                "code=" + Arrays.toString(code) +
+                "code=" + code +
                 '}';
     }
 }
