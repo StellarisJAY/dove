@@ -4,6 +4,7 @@ import com.jay.dove.config.Configs;
 import com.jay.dove.transport.HeartBeatHandler;
 import com.jay.dove.transport.Url;
 import com.jay.dove.transport.codec.Codec;
+import com.jay.dove.transport.command.DefaultResponseHandler;
 import com.jay.dove.transport.protocol.ProtocolCode;
 import com.jay.dove.util.NamedThreadFactory;
 import io.netty.bootstrap.Bootstrap;
@@ -75,6 +76,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 ChannelPipeline pipeline = channel.pipeline();
                 // codec decoder and encoder
                 pipeline.addLast("decoder", codec.newDecoder());
+                pipeline.addLast("encoder", codec.newEncoder());
                 // connect event handler
                 pipeline.addLast("connect-event-handler", connectEventHandler);
 
@@ -83,7 +85,9 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                     pipeline.addLast("idle-state-handler", new IdleStateHandler(Configs.tcpIdleTime(), Configs.tcpIdleTime(), 0));
                     pipeline.addLast("heart-beat-handler", heartBeatHandler);
                 }
-                pipeline.addLast("encoder", codec.newEncoder());
+                // add response handler, handles invoke future
+                pipeline.addLast("dove-response-handler", new DefaultResponseHandler());
+
             }
         });
     }
