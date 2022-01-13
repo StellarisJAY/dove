@@ -3,6 +3,7 @@ package com.jay.dove.transport;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,12 +55,22 @@ public class Url {
         properties.putIfAbsent(name, value);
     }
 
+    public static Url fromAddress(InetSocketAddress address){
+        String host = address.getHostString();
+        int port = address.getPort();
+        return parseString(host + ":" + port);
+    }
+
     public static Url parseString(String originalUrl){
         Url url = new Url(originalUrl);
         int queryStart = originalUrl.indexOf(QUERY);
-        // parse ip & port
-        String address = originalUrl.substring(0, queryStart);
-        url.parseAddress(address);
+        if(queryStart == -1){
+            url.parseAddress(originalUrl);
+        }else{
+            // parse ip & port
+            String address = originalUrl.substring(0, queryStart);
+            url.parseAddress(address);
+        }
 
         // parse query properties
         String[] queries = originalUrl.substring(queryStart + 1).split(AND);
@@ -93,8 +104,8 @@ public class Url {
     }
 
     private void parseArguments(){
-        this.protocol = Integer.parseInt(properties.get("protocol"));
-        this.expectedConnectionCount = Integer.parseInt(properties.get("conn"));
+        this.protocol = properties.get("protocol") == null ? 22 : Integer.parseInt(properties.get("protocol"));
+        this.expectedConnectionCount = properties.get("conn") == null ? 0 :  Integer.parseInt(properties.get("conn"));
     }
 
     private void parsePoolKey(){

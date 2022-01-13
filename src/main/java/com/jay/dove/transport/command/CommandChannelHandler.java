@@ -10,7 +10,8 @@ import io.netty.util.Attribute;
 
 /**
  * <p>
- *
+ *  Command Channel Handler。
+ *  This handler gets this channel's protocol and protocol's commandHandler.
  * </p>
  *
  * @author Jay
