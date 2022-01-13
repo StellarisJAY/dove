@@ -8,6 +8,7 @@ import com.jay.dove.transport.protocol.ProtocolManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.Attribute;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -20,11 +21,13 @@ import java.util.List;
  * @author Jay
  * @date 2021/12/31 14:05
  */
+@Slf4j
 public class ProtocolCodeBasedDecoder extends AbstractBatchDecoder{
 
     public static final int DEFAULT_PROTOCOL_VERSION_LENGTH         = 1;
     public static final int DEFAULT_ILLEGAL_PROTOCOL_VERSION_LENGTH = -1;
     public static final int DEFAULT_PROTOCOL_CODE_LENGTH = 2;
+    public static final short DEFAULT_PROTOCOL = 22;
 
 
     /**
@@ -34,25 +37,23 @@ public class ProtocolCodeBasedDecoder extends AbstractBatchDecoder{
      * @return {@link ProtocolCode}
      */
     protected ProtocolCode decodeProtocolCode(ByteBuf in){
-        byte[] bytes = new byte[DEFAULT_PROTOCOL_CODE_LENGTH];
         if(in.readableBytes() > DEFAULT_PROTOCOL_CODE_LENGTH) {
-            in.readBytes(bytes);
+            short code = in.readShort();
+            return ProtocolCode.fromValue(code);
         }
-        return ProtocolCode.fromBytes(bytes);
+        return ProtocolCode.fromValue(DEFAULT_PROTOCOL);
     }
 
     @Override
     public void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        // start index
+        Protocol protocol = null;
         in.markReaderIndex();
-        Protocol protocol;
         try{
             // decode protocol code
             ProtocolCode protocolCode = decodeProtocolCode(in);
             if(protocolCode == null){
                 return;
             }
-
             // check this channel's protocol
             Attribute<ProtocolCode> attr = ctx.channel().attr(Connection.PROTOCOL);
             if(attr.get() == null){
@@ -61,11 +62,9 @@ public class ProtocolCodeBasedDecoder extends AbstractBatchDecoder{
             else if(!attr.get().equals(protocolCode)){
                 throw new DecoderException("channel doesn't support this protocol");
             }
-
             // get protocol
             protocol = ProtocolManager.getProtocol(protocolCode);
-        }finally {
-            // reset reader index
+        }catch (Exception e){
             in.resetReaderIndex();
         }
         if(protocol == null){
