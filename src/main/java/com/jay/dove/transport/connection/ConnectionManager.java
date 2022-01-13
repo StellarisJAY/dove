@@ -28,7 +28,7 @@ public class ConnectionManager {
     /**
      * connection factory, produces connections of the same protocol
      */
-    private final ConnectionFactory connectionFactory;
+    private ConnectionFactory connectionFactory;
 
 
     /**
@@ -38,6 +38,11 @@ public class ConnectionManager {
     private final ExecutorService asyncConnectExecutor = new ThreadPoolExecutor(2, 2,
             0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
             new NamedThreadFactory("async-connect-thread", true));
+
+
+    public ConnectionManager(){
+
+    }
 
     public ConnectionManager(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
@@ -63,6 +68,13 @@ public class ConnectionManager {
         }
         // close connection
         connection.close();
+    }
+
+    public void add(Connection connection){
+        ConnectionPool pool = this.getConnectionPoolAndCreateIfAbsent(connection.getUrl());
+        if(pool != null){
+            pool.add(connection);
+        }
     }
 
     /**

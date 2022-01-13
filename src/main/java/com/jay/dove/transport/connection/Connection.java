@@ -48,6 +48,13 @@ public class Connection {
      */
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    public Connection (Channel channel, Url url){
+        this.channel = channel;
+        this.url = url;
+        this.poolKey = url.getPoolKey();
+        channel.attr(CONNECTION).set(this);
+    }
+
     public Connection(Channel channel, ProtocolCode protocolCode, Url url) {
         this.channel = channel;
         this.poolKey = url.getPoolKey();
@@ -93,6 +100,10 @@ public class Connection {
         if(invokeFuture != null){
             invokeFuture.putResponse(response);
         }
+    }
+
+    public InvokeFuture removeInvokeFuture(Integer id){
+        return invokeFutureMap.get(id);
     }
 
     public String getPoolKey() {
