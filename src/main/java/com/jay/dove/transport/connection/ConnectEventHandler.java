@@ -2,14 +2,9 @@ package com.jay.dove.transport.connection;
 
 import com.jay.dove.config.Configs;
 import com.jay.dove.transport.Url;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
+import io.netty.channel.*;
 import io.netty.util.Attribute;
 import lombok.extern.slf4j.Slf4j;
-
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
 /**
@@ -23,6 +18,7 @@ import java.net.SocketAddress;
  * @date 2022/01/10 10:47
  */
 @Slf4j
+@ChannelHandler.Sharable
 public class ConnectEventHandler extends ChannelDuplexHandler {
 
     private Reconnector reconnector;
