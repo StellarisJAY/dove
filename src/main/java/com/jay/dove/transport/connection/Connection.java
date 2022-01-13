@@ -102,6 +102,14 @@ public class Connection {
         }
     }
 
+    public Channel getChannel(){
+        return channel;
+    }
+
+    public void addInvokeFuture(int id, InvokeFuture future){
+        invokeFutureMap.put(id, future);
+    }
+
     public InvokeFuture removeInvokeFuture(Integer id){
         return invokeFutureMap.get(id);
     }

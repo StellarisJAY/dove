@@ -14,14 +14,39 @@ import java.io.Serializable;
  * @date 2022/01/07 19:39
  */
 public interface RemotingCommand extends Serializable {
-
+    /**
+     * get command id
+     * @return int
+     */
     int getId();
 
+    /**
+     * set command id
+     * @param id int
+     */
     void setId(int id);
 
-    ProtocolCode getProtocolCode();
-
+    /**
+     * get serializer
+     * @return {@link Serializer}
+     */
     Serializer getSerializer();
 
+    /**
+     * get CommandCode
+     * @return {@link CommandCode}
+     */
     CommandCode getCommandCode();
+
+    /**
+     * get the timeout milliseconds
+     * @return long
+     */
+    long getTimeoutMillis();
+
+    /**
+     *  set timeout
+     * @param time long
+     */
+    void setTimeoutMillis(long time);
 }
