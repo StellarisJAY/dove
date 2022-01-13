@@ -28,7 +28,7 @@ public class Url {
     /**
      * protocol
      */
-    private int protocol;
+    private short protocol;
     /**
      * expected connection pool size
      */
@@ -104,7 +104,7 @@ public class Url {
     }
 
     private void parseArguments(){
-        this.protocol = properties.get("protocol") == null ? 22 : Integer.parseInt(properties.get("protocol"));
+        this.protocol = properties.get("protocol") == null ? 22 : Short.parseShort(properties.get("protocol"));
         this.expectedConnectionCount = properties.get("conn") == null ? 0 :  Integer.parseInt(properties.get("conn"));
     }
 
