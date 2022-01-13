@@ -106,7 +106,7 @@ public class ConnectionManager {
      * @param url {@link Url}
      * @return {@link Connection}
      */
-    public Connection getAndCreateConnectionIfAbsent(Url url){
+    public Connection getConnectionAndCreateIfAbsent(Url url){
         ConnectionPool pool = getConnectionPoolAndCreateIfAbsent(url);
         return pool != null ? pool.getConnection() : null;
     }
