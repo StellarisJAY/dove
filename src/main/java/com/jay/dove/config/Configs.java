@@ -70,6 +70,9 @@ public class Configs {
     public static final String ENABLE_RECONNECT = "dove.enable_reconnect";
     public static final boolean ENABLE_RECONNECT_DEFAULT = true;
 
+    public static final String SERVER_MANAGE_CONNECTION = "dove.server_manage_connection";
+    public static final boolean SERVER_MANAGE_CONNECTION_DEFAULT = false;
+
     public static boolean soKeepAlive(){
         Boolean keepAlive = ConfigManager.getBoolean(TCP_SO_KEEP_ALIVE);
         return keepAlive != null ? keepAlive : TCP_SO_KEEP_ALIVE_DEFAULT;
@@ -108,5 +111,10 @@ public class Configs {
     public static boolean enableReconnect(){
         Boolean enable = ConfigManager.getBoolean(ENABLE_RECONNECT);
         return enable != null ? enable : ENABLE_RECONNECT_DEFAULT;
+    }
+
+    public static boolean serverManageConnection(){
+        Boolean manage = ConfigManager.getBoolean(SERVER_MANAGE_CONNECTION);
+        return manage != null ? manage : SERVER_MANAGE_CONNECTION_DEFAULT;
     }
 }
