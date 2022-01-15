@@ -111,7 +111,7 @@ public class Connection {
     }
 
     public InvokeFuture removeInvokeFuture(Integer id){
-        return invokeFutureMap.get(id);
+        return invokeFutureMap.remove(id);
     }
 
     public String getPoolKey() {

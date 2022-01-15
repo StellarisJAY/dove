@@ -26,17 +26,23 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class BaseRemoting implements Remoting{
 
-    private CommandFactory commandFactory;
+    private final CommandFactory commandFactory;
+
+    public BaseRemoting(CommandFactory commandFactory) {
+        this.commandFactory = commandFactory;
+    }
 
     @Override
     public void sendOneway(Connection connection, RemotingCommand command) {
         // check if command already timeout, client fail-fast
         long timeout = command.getTimeoutMillis();
         if(System.currentTimeMillis() >= timeout){
-            log.info("timeout");
+            log.warn("oneway request timeout before sending, {}", command);
             return;
         }
+        // get channel from connection
         Channel channel = connection.getChannel();
+        // send
         channel.writeAndFlush(command).addListener((ChannelFutureListener)future->{
             if(!future.isSuccess()){
                 log.warn("oneway request failed, command: {}, connection: {}", command, connection);
@@ -68,10 +74,12 @@ public class BaseRemoting implements Remoting{
         HashedWheelTimer timer = TimerHolder.getTimer();
         timer.newTimeout(time->{
             // remove timeout future
-            connection.removeInvokeFuture(commandId);
-            // put timeout response
-            future.putResponse(commandFactory.createTimeoutResponse(commandId, "await response timeout, request id: " + commandId));
-        }, (System.currentTimeMillis() - timeout), TimeUnit.MILLISECONDS);
+            InvokeFuture timeoutFuture = connection.removeInvokeFuture(commandId);
+            if(timeoutFuture != null){
+                // put timeout response
+                future.putResponse(commandFactory.createTimeoutResponse(commandId, "await response timeout, request id: " + commandId));
+            }
+        }, (timeout - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
 
         // send request and listen send result
         connection.getChannel().writeAndFlush(command).addListener((ChannelFutureListener) listener->{

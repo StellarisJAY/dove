@@ -49,4 +49,6 @@ public interface RemotingCommand extends Serializable {
      * @param time long
      */
     void setTimeoutMillis(long time);
+
+    byte[] getContent();
 }

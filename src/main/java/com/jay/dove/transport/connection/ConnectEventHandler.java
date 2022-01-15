@@ -58,8 +58,8 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("error: ", cause);
         this.userEventTriggered(ctx, ConnectEvent.EXCEPTION);
-        ctx.channel().close();
     }
 
     @Override
@@ -80,7 +80,6 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
                 case CONNECT_FAIL:
                 case EXCEPTION:
                 case CLOSE: submitReconnectTask(connection.getUrl());
-                            log.warn("connection closed: {}", channel.remoteAddress());
                             onEvent(connection, event);
                             break;
                 default:break;

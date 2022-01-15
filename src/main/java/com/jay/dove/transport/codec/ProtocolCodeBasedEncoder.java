@@ -46,7 +46,7 @@ public class ProtocolCodeBasedEncoder extends MessageToByteEncoder<Object> {
         if(protocol == null){
             throw new EncoderException("unknown protocol, please register protocol to ProtocolManager");
         }
-        byteBuf.writeShort(protocolCode.value());
+        byteBuf.writeByte(protocolCode.value());
         // call protocol's encoder
         protocol.getEncoder().encode(context, o, byteBuf);
     }

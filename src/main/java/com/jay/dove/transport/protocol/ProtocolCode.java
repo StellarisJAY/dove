@@ -11,13 +11,13 @@ import java.util.Objects;
  * @date 2021/12/31 14:10
  */
 public class ProtocolCode {
-    private final short code;
+    private final byte code;
 
-    private ProtocolCode(short code) {
+    private ProtocolCode(byte code) {
         this.code = code;
     }
 
-    public static ProtocolCode fromValue(short code){
+    public static ProtocolCode fromValue(byte code){
         return new ProtocolCode(code);
     }
 

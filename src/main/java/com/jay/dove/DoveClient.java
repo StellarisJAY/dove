@@ -4,6 +4,7 @@ import com.jay.dove.transport.BaseRemoting;
 import com.jay.dove.transport.Url;
 import com.jay.dove.transport.callback.InvokeCallback;
 import com.jay.dove.transport.callback.InvokeFuture;
+import com.jay.dove.transport.command.CommandFactory;
 import com.jay.dove.transport.command.RemotingCommand;
 import com.jay.dove.transport.connection.Connection;
 import com.jay.dove.transport.connection.ConnectionManager;
@@ -22,10 +23,11 @@ public class DoveClient {
      * client side connection manager
      */
     private final ConnectionManager connectionManager;
-    private final BaseRemoting baseRemoting = new BaseRemoting();
+    private final BaseRemoting baseRemoting;
 
-    public DoveClient(ConnectionManager connectionManager) {
+    public DoveClient(ConnectionManager connectionManager, CommandFactory commandFactory) {
         this.connectionManager = connectionManager;
+        this.baseRemoting = new BaseRemoting(commandFactory);
     }
 
     public void sendOneway(Url url, RemotingCommand command){
