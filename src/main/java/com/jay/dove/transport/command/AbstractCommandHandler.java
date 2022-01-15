@@ -2,6 +2,7 @@ package com.jay.dove.transport.command;
 
 import com.jay.dove.config.Configs;
 import io.netty.channel.ChannelHandlerContext;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutorService;
  * @author Jay
  * @date 2022/01/08 11:10
  */
+@Slf4j
 public abstract class AbstractCommandHandler implements CommandHandler{
 
     private final ProcessorManager processorManager;
@@ -80,6 +82,7 @@ public abstract class AbstractCommandHandler implements CommandHandler{
 
     private void handleException(ChannelHandlerContext context, Throwable cause){
         // handle exception here
+        log.error("process error: ",cause);
     }
 
     @Override
