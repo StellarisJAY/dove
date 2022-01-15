@@ -82,6 +82,38 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
         }
     }
 
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        super.channelReadComplete(ctx);
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        RecyclableArrayList out = RecyclableArrayList.newInstance();
+        try{
+            if(accumulation != null){
+                decodeBatch(ctx, accumulation, out);
+                decode(ctx, accumulation, out);
+            }
+        }catch (DecoderException e){
+            throw e;
+        } catch (Exception e){
+            throw new DecoderException(e);
+        }finally {
+            if(accumulation != null){
+                accumulation.release();
+            }
+            int size = out.size();
+            for (Object o : out) {
+                ctx.fireChannelRead(o);
+            }
+            if(size > 0){
+                ctx.fireChannelReadComplete();
+            }
+            ctx.fireChannelInactive();
+            out.recycle();
+        }
+    }
 
     /**
      * decode all readable bytes from input buffer
@@ -96,7 +128,7 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
             while(in.isReadable()){
                 // original size of List and readable bytes before decode
                 int originalSize = out.size();
-                int originalReadable = in.readableBytes();
+                int originalReaderIndex = in.readerIndex();
 
                 // decode once
                 decode(ctx, in, out);
@@ -104,17 +136,18 @@ public abstract class AbstractBatchDecoder extends ChannelInboundHandlerAdapter 
                 // nothing decoded
                 if(originalSize == out.size()){
                     // nothing read
-                    if(originalReadable == in.readableBytes()){
+                    if(originalReaderIndex == in.readerIndex()){
                         // break to prevent endless loop
                         break;
-                    }else{
+                    }
+                    else{
                         continue;
                     }
                 }
 
                 // read nothing but decode() return a result
-                if(originalReadable == in.readableBytes()){
-                    throw new DecoderException("no bytes read from buffer but returned a decoder result");
+                if(originalReaderIndex == in.readerIndex()){
+                    throw new DecoderException("decode failed , weird ");
                 }
             }
         }catch (DecoderException e){

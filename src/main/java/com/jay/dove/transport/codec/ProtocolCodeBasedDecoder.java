@@ -11,6 +11,7 @@ import io.netty.util.Attribute;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
@@ -23,13 +24,11 @@ import java.util.List;
  */
 @Slf4j
 public class ProtocolCodeBasedDecoder extends AbstractBatchDecoder{
-
-    public static final int DEFAULT_PROTOCOL_VERSION_LENGTH         = 1;
-    public static final int DEFAULT_ILLEGAL_PROTOCOL_VERSION_LENGTH = -1;
-    public static final int DEFAULT_PROTOCOL_CODE_LENGTH = 2;
-    public static final short DEFAULT_PROTOCOL = 22;
-
-
+    /**
+     * PROTOCOL CODE LENGTH
+     */
+    public static final int DEFAULT_PROTOCOL_CODE_LENGTH = 1;
+    private final ProtocolCode rpcCode = ProtocolCode.fromValue((byte)22);
     /**
      * decode the protocol code from input.
      * {@link #decode} will use this code to locate protocol decoder
@@ -38,39 +37,35 @@ public class ProtocolCodeBasedDecoder extends AbstractBatchDecoder{
      */
     protected ProtocolCode decodeProtocolCode(ByteBuf in){
         if(in.readableBytes() > DEFAULT_PROTOCOL_CODE_LENGTH) {
-            short code = in.readShort();
+            byte code = in.readByte();
             return ProtocolCode.fromValue(code);
         }
-        return ProtocolCode.fromValue(DEFAULT_PROTOCOL);
+        return null;
     }
 
     @Override
     public void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         Protocol protocol = null;
+        ProtocolCode protocolCode = null;
         in.markReaderIndex();
         try{
-            // decode protocol code
-            ProtocolCode protocolCode = decodeProtocolCode(in);
+            protocolCode = decodeProtocolCode(in);
             if(protocolCode == null){
                 return;
             }
-            // check this channel's protocol
+            protocol = ProtocolManager.getProtocol(protocolCode);
+        }finally {
+            in.resetReaderIndex();
+        }
+
+        if(protocol != null){
             Attribute<ProtocolCode> attr = ctx.channel().attr(Connection.PROTOCOL);
             if(attr.get() == null){
                 attr.set(protocolCode);
             }
-            else if(!attr.get().equals(protocolCode)){
-                throw new DecoderException("channel doesn't support this protocol");
-            }
-            // get protocol
-            protocol = ProtocolManager.getProtocol(protocolCode);
-        }catch (Exception e){
-            in.resetReaderIndex();
+            protocol.getDecoder().decode(ctx, in, out);
+        }else{
+            log.error("unregistered protocol: {}", protocolCode.value());
         }
-        if(protocol == null){
-            throw new DecoderException("unknown protocol");
-        }
-        // call protocol decoder
-        protocol.getDecoder().decode(ctx, in, out);
     }
 }
