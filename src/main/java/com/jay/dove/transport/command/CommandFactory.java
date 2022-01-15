@@ -14,6 +14,8 @@ public interface CommandFactory {
 
     RemotingCommand createRequest(Object request);
 
+    RemotingCommand createResponse(int id, Object response);
+
     RemotingCommand createExceptionResponse(int id, String errMsg);
 
     RemotingCommand createExceptionResponse(int id, Throwable cause);
