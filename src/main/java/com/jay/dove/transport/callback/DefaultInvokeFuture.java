@@ -3,12 +3,13 @@ package com.jay.dove.transport.callback;
 import com.jay.dove.transport.command.RemotingCommand;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
  * <p>
- *
+ *  Default Invoke Future
  * </p>
  *
  * @author Jay
@@ -20,7 +21,7 @@ public class DefaultInvokeFuture implements InvokeFuture{
 
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
-    private InvokeCallback callback;
+    private final InvokeCallback callback;
 
     public DefaultInvokeFuture(InvokeCallback callback) {
         this.callback = callback;
@@ -50,14 +51,21 @@ public class DefaultInvokeFuture implements InvokeFuture{
 
     @Override
     public void executeCallback() {
+        // execute callback methods
         if(callback != null){
-            callback.getExecutor().submit(()->{
+            Runnable callbackTask = ()->{
                 try{
                     callback.onComplete(response);
                 }catch (Exception e){
                     callback.exceptionCaught(e);
                 }
-            });
+            };
+            // determine execute callback using executor thread or I/O thread
+            if( callback.getExecutor() != null){
+                callback.getExecutor().submit(callbackTask);
+            } else{
+                callbackTask.run();
+            }
         }
     }
 }

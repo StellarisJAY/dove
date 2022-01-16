@@ -10,14 +10,15 @@ import com.jay.dove.util.TimerHolder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * <p>
- *
+ *  Basic remoting implements
  * </p>
  *
  * @author Jay
@@ -72,14 +73,7 @@ public class BaseRemoting implements Remoting{
         }
         // submit a new timeout task
         HashedWheelTimer timer = TimerHolder.getTimer();
-        timer.newTimeout(time->{
-            // remove timeout future
-            InvokeFuture timeoutFuture = connection.removeInvokeFuture(commandId);
-            if(timeoutFuture != null){
-                // put timeout response
-                future.putResponse(commandFactory.createTimeoutResponse(commandId, "await response timeout, request id: " + commandId));
-            }
-        }, (timeout - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+        timer.newTimeout(new TimeoutTask(command, connection, callback), (timeout - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
 
         // send request and listen send result
         connection.getChannel().writeAndFlush(command).addListener((ChannelFutureListener) listener->{
@@ -98,6 +92,41 @@ public class BaseRemoting implements Remoting{
 
     @Override
     public void sendAsync(Connection connection, RemotingCommand command, InvokeCallback callback) {
-
+        if(callback == null){
+            // if callback is not provided, this method is same to one-way
+            this.sendOneway(connection, command);
+        }else{
+            // send future but ignore returned future instance
+            this.sendFuture(connection, command, callback);
+        }
     }
+
+    /**
+     * Timeout task
+     */
+    class TimeoutTask implements TimerTask {
+        private final RemotingCommand request;
+        private final Connection connection;
+        private final InvokeCallback callback;
+
+        public TimeoutTask(RemotingCommand request, Connection connection, InvokeCallback callback) {
+            this.request = request;
+            this.connection = connection;
+            this.callback = callback;
+        }
+
+        @Override
+        public void run(Timeout timeout) {
+            // remove timeout future
+            InvokeFuture timeoutFuture = connection.removeInvokeFuture(request.getId());
+            if(timeoutFuture != null){
+                // put timeout response
+                timeoutFuture.putResponse(commandFactory.createTimeoutResponse(request.getId(), "await response timeout, request id: " + request.getId()));
+                // execute callback using timer thread
+                callback.onTimeout(request);
+            }
+        }
+    }
+
+
 }
