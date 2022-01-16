@@ -9,6 +9,7 @@ import com.jay.dove.transport.callback.InvokeCallback;
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.codec.Codec;
 import com.jay.dove.transport.command.CommandChannelHandler;
+import com.jay.dove.transport.command.CommandFactory;
 import com.jay.dove.transport.command.DefaultResponseHandler;
 import com.jay.dove.transport.command.RemotingCommand;
 import com.jay.dove.transport.connection.ConnectEventHandler;
@@ -57,12 +58,16 @@ public class DoveServer extends AbstractLifeCycle {
      */
     private final int port;
 
-    private BaseRemoting baseRemoting;
+    /**
+     * basic remoting methods
+     */
+    private final BaseRemoting baseRemoting;
 
-    public DoveServer(Codec codec, int port) {
+    public DoveServer(Codec codec, int port, CommandFactory commandFactory) {
         this.bootstrap = new ServerBootstrap();
         this.codec = codec;
         this.port = port;
+        this.baseRemoting = new BaseRemoting(commandFactory);
     }
 
     public void doInit(){
@@ -86,7 +91,7 @@ public class DoveServer extends AbstractLifeCycle {
         // init channel
         bootstrap.childHandler(new ChannelInitializer<NioSocketChannel>() {
             @Override
-            protected void initChannel(NioSocketChannel channel) throws Exception {
+            protected void initChannel(NioSocketChannel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
                 // protocol encoder and decoder
                 pipeline.addLast("decoder", codec.newDecoder());
@@ -213,6 +218,19 @@ public class DoveServer extends AbstractLifeCycle {
         }
     }
 
-
-
+    /**
+     * send request asynchronously with callback
+     * @param channel {@link Channel}
+     * @param command {@link RemotingCommand}
+     * @param callback {@link InvokeCallback}
+     */
+    public void sendAsync(Channel channel, RemotingCommand command, InvokeCallback callback){
+        Attribute<Connection> attr = channel.attr(Connection.CONNECTION);
+        Connection connection;
+        if(attr != null && (connection = attr.get()) != null){
+            baseRemoting.sendAsync(connection, command, callback);
+        }else{
+            throw new RuntimeException("This channel is not bind to a Connection instance. Can't send command asynchronously.");
+        }
+    }
 }

@@ -30,18 +30,49 @@ public class DoveClient {
         this.baseRemoting = new BaseRemoting(commandFactory);
     }
 
+    /**
+     * send a one-way request to target url
+     * @param url {@link Url}
+     * @param command {@link RemotingCommand}
+     */
     public void sendOneway(Url url, RemotingCommand command){
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         this.baseRemoting.sendOneway(connection, command);
     }
 
+    /**
+     * send request and await response synchronously
+     * @param url {@link Url}
+     * @param command {@link RemotingCommand}
+     * @param callback {@link InvokeCallback}
+     * @return {@link RemotingCommand}
+     * @throws InterruptedException await response interrupted
+     */
     public RemotingCommand sendSync(Url url, RemotingCommand command, InvokeCallback callback) throws InterruptedException {
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         return this.baseRemoting.sendSync(connection, command, callback);
     }
 
+    /**
+     * send request asynchronously with future instance
+     * @param url {@link Url}
+     * @param command {@link RemotingCommand}
+     * @param callback {@link InvokeCallback}
+     * @return {@link InvokeFuture}
+     */
     public InvokeFuture sendFuture(Url url, RemotingCommand command, InvokeCallback callback){
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         return this.baseRemoting.sendFuture(connection, command, callback);
+    }
+
+    /**
+     * send request asynchronously with callback
+     * @param url {@link Url}
+     * @param command {@link RemotingCommand}
+     * @param callback {@link InvokeCallback}
+     */
+    public void sendAsync(Url url, RemotingCommand command, InvokeCallback callback){
+        Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
+        this.baseRemoting.sendAsync(connection, command, callback);
     }
 }
