@@ -20,18 +20,22 @@ public abstract class AbstractCommandHandler implements CommandHandler{
 
     private final ProcessorManager processorManager;
     private ExecutorService defaultExecutor;
+    private final CommandFactory commandFactory;
 
-    public AbstractCommandHandler() {
+    public AbstractCommandHandler(CommandFactory commandFactory) {
+        this.commandFactory = commandFactory;
         this.processorManager = new ProcessorManager();
     }
 
-    public AbstractCommandHandler(ProcessorManager processorManager){
+    public AbstractCommandHandler(ProcessorManager processorManager, CommandFactory commandFactory){
         this.processorManager = processorManager;
+        this.commandFactory = commandFactory;
     }
 
-    public AbstractCommandHandler(ExecutorService defaultExecutor){
+    public AbstractCommandHandler(ExecutorService defaultExecutor, CommandFactory commandFactory){
         this.defaultExecutor = defaultExecutor;
         this.processorManager = new ProcessorManager();
+        this.commandFactory = commandFactory;
     }
 
     @Override
@@ -69,12 +73,20 @@ public abstract class AbstractCommandHandler implements CommandHandler{
     private void process(ChannelHandlerContext context, Object msg){
         try{
             RemotingCommand command = (RemotingCommand) msg;
-            // get the command code
-            CommandCode code = command.getCommandCode();
-            // find processor for this command code
-            Processor processor = processorManager.getProcessor(code);
-            // process command
-            processor.process(context, command);
+            // server side fail-fast, check timeout
+            if(command.getTimeoutMillis() <= System.currentTimeMillis()){
+                // create timeout response and send
+                RemotingCommand response = commandFactory.createTimeoutResponse(command.getId(), "request timeout");
+                context.channel().writeAndFlush(response);
+            }
+            else{
+                // get the command code
+                CommandCode code = command.getCommandCode();
+                // find processor for this command code
+                Processor processor = processorManager.getProcessor(code);
+                // process command
+                processor.process(context, command);
+            }
         }catch (Throwable e){
             handleException(context, e);
         }
