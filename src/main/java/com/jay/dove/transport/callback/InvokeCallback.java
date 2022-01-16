@@ -27,6 +27,12 @@ public interface InvokeCallback {
     void exceptionCaught(Throwable cause);
 
     /**
+     * called on invoke timeout
+     * @param request {@link RemotingCommand} original request
+     */
+    void onTimeout(RemotingCommand request);
+
+    /**
      * get the callback executor
      * @return {@link ExecutorService}
      */
