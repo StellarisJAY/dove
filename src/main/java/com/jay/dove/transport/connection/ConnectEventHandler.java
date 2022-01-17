@@ -47,7 +47,8 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
         Attribute<Connection> attr = ctx.channel().attr(Connection.CONNECTION);
         if(attr != null){
             Connection connection = attr.get();
-            if(connection != null){
+            // check if connection manager present, server-side may be absent
+            if(connection != null && connectionManager != null){
                 // remove inactive connection
                 connectionManager.remove(connection);
                 // fires CLOSE Event
