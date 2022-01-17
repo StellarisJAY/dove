@@ -27,4 +27,10 @@ public interface Serializer {
      * @return T
      */
     <T> T deserialize(byte[] serialized, Class<T> clazz);
+
+    /**
+     * get serializer's id code
+     * @return byte
+     */
+    byte getSerializerCode();
 }
