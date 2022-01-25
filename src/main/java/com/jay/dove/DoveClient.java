@@ -23,10 +23,12 @@ public class DoveClient {
      * client side connection manager
      */
     private final ConnectionManager connectionManager;
+    private final CommandFactory commandFactory;
     private final BaseRemoting baseRemoting;
 
     public DoveClient(ConnectionManager connectionManager, CommandFactory commandFactory) {
         this.connectionManager = connectionManager;
+        this.commandFactory = commandFactory;
         this.baseRemoting = new BaseRemoting(commandFactory);
     }
 
@@ -74,5 +76,9 @@ public class DoveClient {
     public void sendAsync(Url url, RemotingCommand command, InvokeCallback callback){
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         this.baseRemoting.sendAsync(connection, command, callback);
+    }
+
+    public CommandFactory getCommandFactory(){
+        return commandFactory;
     }
 }
