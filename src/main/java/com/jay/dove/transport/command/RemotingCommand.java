@@ -28,9 +28,9 @@ public interface RemotingCommand extends Serializable {
 
     /**
      * get serializer
-     * @return {@link Serializer}
+     * @return byte serializer id code
      */
-    Serializer getSerializer();
+    byte getSerializer();
 
     /**
      * get CommandCode
