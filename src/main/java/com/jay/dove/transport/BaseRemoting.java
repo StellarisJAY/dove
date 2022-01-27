@@ -123,7 +123,9 @@ public class BaseRemoting implements Remoting{
                 // put timeout response
                 timeoutFuture.putResponse(commandFactory.createTimeoutResponse(request.getId(), "await response timeout, request id: " + request.getId()));
                 // execute callback using timer thread
-                callback.onTimeout(request);
+                if(callback != null){
+                    callback.onTimeout(request);
+                }
             }
         }
     }

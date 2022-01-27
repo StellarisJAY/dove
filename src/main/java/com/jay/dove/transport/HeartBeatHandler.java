@@ -31,7 +31,10 @@ public class HeartBeatHandler extends ChannelDuplexHandler {
                     // get protocol from protocol manager
                     Protocol protocol = ProtocolManager.getProtocol(protocolCode);
                     // call protocol's heart-beat trigger
-                    protocol.getHeartBeatTrigger().heartBeatTriggered(ctx);
+                    HeartBeatTrigger heartBeatTrigger = protocol.getHeartBeatTrigger();
+                    if(heartBeatTrigger != null){
+                        heartBeatTrigger.heartBeatTriggered(ctx);
+                    }
                 }
             }
         }
