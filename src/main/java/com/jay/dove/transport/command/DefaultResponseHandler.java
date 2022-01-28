@@ -1,6 +1,5 @@
 package com.jay.dove.transport.command;
 
-import com.jay.dove.RequestConnectionHolder;
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.connection.Connection;
 import io.netty.channel.ChannelHandlerContext;
