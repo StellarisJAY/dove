@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * <p>
@@ -47,16 +48,32 @@ public abstract class AbstractCommandHandler implements CommandHandler{
     @SuppressWarnings("rawtypes")
     public void handleCommand(ChannelHandlerContext context, Object msg) {
         if(msg instanceof List){
+            List commands = (List)msg;
             // handle multiple commands
             Runnable task = ()->{
-                List commands = (List)msg;
                 for(Object command : commands){
                     process(context, command);
                 }
             };
-            if(Configs.dispatchListToExecutor()){
-                getDefaultExecutor().submit(task);
+            // check whether dispatch task to executor or not
+            if(Configs.dispatchListToExecutor() && getDefaultExecutor() != null){
+                // try submit task to executor
+                try{
+                    getDefaultExecutor().submit(task);
+                }catch (RejectedExecutionException e){
+                    // task rejected by executor
+                    for(Object obj : commands){
+                        // send error response
+                        RemotingCommand command = (RemotingCommand)obj;
+                        RemotingCommand response = commandFactory.createExceptionResponse(command.getId(), "command rejected by command handler executor");
+                        context.channel().writeAndFlush(response);
+                    }
+                }
             }else{
+                /*
+                    run task using I/O thread.
+                    This option is expensive.
+                 */
                 task.run();
             }
         }else{
