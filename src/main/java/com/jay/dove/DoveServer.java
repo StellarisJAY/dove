@@ -105,8 +105,6 @@ public class DoveServer extends AbstractLifeCycle {
                     pipeline.addLast("idle-state-handler", new IdleStateHandler(Configs.tcpIdleTime(), Configs.tcpIdleTime(), 0, TimeUnit.MILLISECONDS));
                     pipeline.addLast("heart-beat-handler", new HeartBeatHandler());
                 }
-                // invoke future response handler
-                pipeline.addLast("response-handler", new DefaultResponseHandler());
                 // command handler
                 pipeline.addLast("command-handler", new CommandChannelHandler());
 
