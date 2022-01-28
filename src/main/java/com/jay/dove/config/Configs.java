@@ -59,7 +59,7 @@ public class Configs {
      * dispatch requests to processor-threads or io-threads
      */
     public static final String DISPATCH_LIST_TO_EXECUTOR = "dove.dispatch_to_executor";
-    public static final boolean DISPATCH_LIST_TO_EXECUTOR_DEFAULT = false;
+    public static final boolean DISPATCH_LIST_TO_EXECUTOR_DEFAULT = true;
 
     /**
      * the timeout value of one connect task

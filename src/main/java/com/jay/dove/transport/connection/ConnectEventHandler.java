@@ -24,7 +24,6 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
     private Reconnector reconnector;
     private ConnectionManager connectionManager;
 
-
     @Override
     public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception {
         super.connect(ctx, remoteAddress, localAddress, promise);
@@ -59,7 +58,9 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error("error: ", cause);
+        if(log.isDebugEnabled()){
+            log.error("channel error: ", cause);
+        }
         this.userEventTriggered(ctx, ConnectEvent.EXCEPTION);
     }
 
@@ -77,9 +78,10 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
                 return;
             }
             switch(event){
-                case CONNECT: onEvent(connection, event);break;
-                case CONNECT_FAIL:
+                case CONNECT:
                 case EXCEPTION:
+                    onEvent(connection, event);break;
+                case CONNECT_FAIL:
                 case CLOSE: submitReconnectTask(connection.getUrl());
                             onEvent(connection, event);
                             break;

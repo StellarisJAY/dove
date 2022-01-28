@@ -50,7 +50,11 @@ public class DefaultResponseHandler extends ChannelInboundHandlerAdapter {
                 }catch (Exception e){
                     log.error("callback execution error ", e);
                 }
+            }else{
+                log.warn("missing invoke future for id: {}, conn: {}", cmd.getId(), connection);
             }
+        }else{
+            log.warn("missing connection instance");
         }
     }
 }
