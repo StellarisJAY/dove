@@ -1,5 +1,6 @@
 package com.jay.dove.transport.command;
 
+import com.jay.dove.RequestConnectionHolder;
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.connection.Connection;
 import io.netty.channel.ChannelHandlerContext;
@@ -50,7 +51,11 @@ public class DefaultResponseHandler extends ChannelInboundHandlerAdapter {
                 }catch (Exception e){
                     log.error("callback execution error ", e);
                 }
+            }else{
+                log.warn("missing invoke future for id: {}, conn: {}", cmd.getId(), connection);
             }
+        }else{
+            log.warn("missing connection instance");
         }
     }
 }

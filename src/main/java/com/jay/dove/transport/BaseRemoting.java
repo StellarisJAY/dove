@@ -65,7 +65,6 @@ public class BaseRemoting implements Remoting{
         int commandId = command.getId();
         // create invoke future
         DefaultInvokeFuture future = new DefaultInvokeFuture(callback);
-
         // check if command already timeout, client fail-fast
         long timeout = command.getTimeoutMillis();
         if(System.currentTimeMillis() >= timeout){
@@ -74,17 +73,22 @@ public class BaseRemoting implements Remoting{
         // submit a new timeout task
         HashedWheelTimer timer = TimerHolder.getTimer();
         timer.newTimeout(new TimeoutTask(command, connection, callback), (timeout - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
-
+        // save invoke future
+        connection.addInvokeFuture(commandId, future);
         // send request and listen send result
         connection.getChannel().writeAndFlush(command).addListener((ChannelFutureListener) listener->{
             if(!listener.isSuccess()){
                 // failed to send
-                log.warn("sync send failed, command: {}, target: {}", command, connection);
+                log.warn("send failed, command: {}, canceled: {}, done: {}", command, listener.isCancelled(), listener.isDone());
                 // put exception response
-                future.putResponse(commandFactory.createExceptionResponse(commandId, "failed to send request to target address"));
-            }else{
-                // send success, save future
-                connection.addInvokeFuture(commandId, future);
+                RemotingCommand response = commandFactory.createExceptionResponse(commandId, "failed to send request to target address");
+                future.putResponse(response);
+                // remove invoke future
+                connection.removeInvokeFuture(commandId);
+                // callback
+                if(callback != null){
+                    callback.onComplete(response);
+                }
             }
         });
         return future;
@@ -117,6 +121,7 @@ public class BaseRemoting implements Remoting{
 
         @Override
         public void run(Timeout timeout) {
+            log.warn("request timeout, request id: {}", request.getId());
             // remove timeout future
             InvokeFuture timeoutFuture = connection.removeInvokeFuture(request.getId());
             if(timeoutFuture != null){
