@@ -121,7 +121,6 @@ public class BaseRemoting implements Remoting{
 
         @Override
         public void run(Timeout timeout) {
-            log.warn("request timeout, request id: {}", request.getId());
             // remove timeout future
             InvokeFuture timeoutFuture = connection.removeInvokeFuture(request.getId());
             if(timeoutFuture != null){
