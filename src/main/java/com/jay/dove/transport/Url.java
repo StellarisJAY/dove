@@ -6,6 +6,7 @@ import lombok.Setter;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>
@@ -105,10 +106,27 @@ public class Url {
 
     private void parseArguments(){
         this.protocol = properties.get("protocol") == null ? 22 : Short.parseShort(properties.get("protocol"));
-        this.expectedConnectionCount = properties.get("conn") == null ? 0 :  Integer.parseInt(properties.get("conn"));
+        this.expectedConnectionCount = properties.get("conn") == null ? 1 :  Integer.parseInt(properties.get("conn"));
     }
 
     private void parsePoolKey(){
         this.poolKey = ip + ":" + port + protocol;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Url url = (Url) o;
+        return port == url.port && Objects.equals(ip, url.ip);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(ip, port);
     }
 }
