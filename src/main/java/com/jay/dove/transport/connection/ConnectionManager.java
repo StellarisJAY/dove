@@ -1,6 +1,6 @@
 package com.jay.dove.transport.connection;
 
-import com.jay.dove.config.Configs;
+import com.jay.dove.config.DoveConfigs;
 import com.jay.dove.transport.Url;
 import com.jay.dove.transport.connection.strategy.RandomSelectStrategy;
 import com.jay.dove.util.FutureTaskUtil;
@@ -84,7 +84,7 @@ public class ConnectionManager {
      * @throws Exception exceptions
      */
     public Connection createConnection(Url url) throws Exception {
-        return this.connectionFactory.create(url, Configs.connectTimeout());
+        return this.connectionFactory.create(url, DoveConfigs.connectTimeout());
     }
 
     /**
@@ -199,7 +199,7 @@ public class ConnectionManager {
             // create a pool, using Random Select Strategy temporarily
             ConnectionPool pool = new ConnectionPool(url, connectionFactory, new RandomSelectStrategy());
             int expectedPoolSize = url.getExpectedConnectionCount();
-            int connTimeOut = Configs.connectTimeout();
+            int connTimeOut = DoveConfigs.connectTimeout();
             if(syncCreateConnCount > 0){
                 // sync create some connections
                 for (int i = 0; i < syncCreateConnCount; i++){
@@ -229,7 +229,7 @@ public class ConnectionManager {
         public Integer call() {
             try{
                 // call connection pool's heal()
-                pool.healConnectionPool(asyncConnectExecutor, expectedCount, Configs.connectTimeout());
+                pool.healConnectionPool(asyncConnectExecutor, expectedCount, DoveConfigs.connectTimeout());
             }catch (Exception e){
                 throw new RuntimeException(e);
             }

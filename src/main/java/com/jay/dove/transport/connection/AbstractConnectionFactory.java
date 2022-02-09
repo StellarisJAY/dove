@@ -1,6 +1,6 @@
 package com.jay.dove.transport.connection;
 
-import com.jay.dove.config.Configs;
+import com.jay.dove.config.DoveConfigs;
 import com.jay.dove.transport.HeartBeatHandler;
 import com.jay.dove.transport.Url;
 import com.jay.dove.transport.codec.Codec;
@@ -11,10 +11,15 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.internal.StringUtil;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.net.ConnectException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * <p>
@@ -27,6 +32,7 @@ import java.net.ConnectException;
  * @author Jay
  * @date 2022/01/09 11:25
  */
+@Slf4j
 public abstract class AbstractConnectionFactory implements ConnectionFactory{
 
     /**
@@ -38,13 +44,20 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
      * heart-beat handler
      */
     private final ChannelHandler heartBeatHandler;
-
+    /**
+     * connect event handler
+     */
     private final ChannelHandler connectEventHandler;
 
     /**
      * protocol code of this connection factory
      */
     private final ProtocolCode protocolCode;
+
+    /**
+     * SSL Context
+     */
+    private SSLContext sslContext = null;
 
     private Bootstrap bootstrap;
     private final EventLoopGroup worker = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() + 1,
@@ -55,6 +68,9 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
         this.protocolCode = protocolCode;
         this.heartBeatHandler = new HeartBeatHandler();
         this.connectEventHandler = connectEventHandler;
+        if(DoveConfigs.enableSsl()){
+            // create ssl context here
+        }
     }
 
     /**
@@ -67,13 +83,17 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 .group(worker);
 
         // options
-        bootstrap.option(ChannelOption.TCP_NODELAY, Configs.tcpNoDelay());
+        bootstrap.option(ChannelOption.TCP_NODELAY, DoveConfigs.tcpNoDelay());
 
         // register handlers
         bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
             @Override
             protected void initChannel(NioSocketChannel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
+                // SSL/TLS handlers
+                if(DoveConfigs.enableSsl() && sslContext != null){
+                    // add SSL Handler here
+                }
                 // codec decoder and encoder
                 pipeline.addLast("decoder", codec.newDecoder());
                 pipeline.addLast("encoder", codec.newEncoder());
@@ -81,8 +101,8 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
                 pipeline.addLast("connect-event-handler", connectEventHandler);
 
                 // heart-beat handler
-                if(Configs.tcpIdleState()){
-                    pipeline.addLast("idle-state-handler", new IdleStateHandler(Configs.tcpIdleTime(), Configs.tcpIdleTime(), 0));
+                if(DoveConfigs.tcpIdleState()){
+                    pipeline.addLast("idle-state-handler", new IdleStateHandler(DoveConfigs.tcpIdleTime(), DoveConfigs.tcpIdleTime(), 0));
                     pipeline.addLast("heart-beat-handler", heartBeatHandler);
                 }
                 // add response handler, handles invoke future

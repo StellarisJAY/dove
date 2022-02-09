@@ -1,7 +1,7 @@
 package com.jay.dove;
 
 import com.jay.dove.common.AbstractLifeCycle;
-import com.jay.dove.config.Configs;
+import com.jay.dove.config.DoveConfigs;
 import com.jay.dove.transport.BaseRemoting;
 import com.jay.dove.transport.HeartBeatHandler;
 import com.jay.dove.transport.Url;
@@ -10,7 +10,6 @@ import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.codec.Codec;
 import com.jay.dove.transport.command.CommandChannelHandler;
 import com.jay.dove.transport.command.CommandFactory;
-import com.jay.dove.transport.command.DefaultResponseHandler;
 import com.jay.dove.transport.command.RemotingCommand;
 import com.jay.dove.transport.connection.ConnectEventHandler;
 import com.jay.dove.transport.connection.Connection;
@@ -20,6 +19,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Attribute;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +63,11 @@ public class DoveServer extends AbstractLifeCycle {
      */
     private final BaseRemoting baseRemoting;
 
+    /**
+     * SSL Context
+     */
+    private SslContext sslContext = null;
+
     public DoveServer(Codec codec, int port, CommandFactory commandFactory) {
         this.bootstrap = new ServerBootstrap();
         this.codec = codec;
@@ -74,7 +79,8 @@ public class DoveServer extends AbstractLifeCycle {
         this.boss = new NioEventLoopGroup(1);
         this.worker = new NioEventLoopGroup();
 
-        if(Configs.serverManageConnection()){
+        // init server connection manage if necessary
+        if(DoveConfigs.serverManageConnection()){
             this.connectionManager = new ConnectionManager();
             this.connectEventHandler = new ConnectEventHandler();
             this.connectEventHandler.setConnectionManager(connectionManager);
@@ -87,12 +93,20 @@ public class DoveServer extends AbstractLifeCycle {
 
         // options here
 
+        // SSL option
+        if(DoveConfigs.enableSsl()){
+            // create SslContext here
+        }
 
         // init channel
         bootstrap.childHandler(new ChannelInitializer<NioSocketChannel>() {
             @Override
             protected void initChannel(NioSocketChannel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
+                // SSL/TLS Handler
+                if(DoveConfigs.enableSsl() && sslContext != null){
+                    // add SslHandler here
+                }
                 // protocol encoder and decoder
                 pipeline.addLast("decoder", codec.newDecoder());
                 pipeline.addLast("encoder", codec.newEncoder());
@@ -101,8 +115,8 @@ public class DoveServer extends AbstractLifeCycle {
                 pipeline.addLast("connect-event-handler", DoveServer.this.connectEventHandler);
 
                 // add heart-beat handlers
-                if(Configs.tcpIdleState()){
-                    pipeline.addLast("idle-state-handler", new IdleStateHandler(Configs.tcpIdleTime(), Configs.tcpIdleTime(), 0, TimeUnit.MILLISECONDS));
+                if(DoveConfigs.tcpIdleState()){
+                    pipeline.addLast("idle-state-handler", new IdleStateHandler(DoveConfigs.tcpIdleTime(), DoveConfigs.tcpIdleTime(), 0, TimeUnit.MILLISECONDS));
                     pipeline.addLast("heart-beat-handler", new HeartBeatHandler());
                 }
                 // command handler
@@ -117,7 +131,7 @@ public class DoveServer extends AbstractLifeCycle {
     private void createConnection(Channel channel){
         // parse url from SocketAddress
         Url url = Url.fromAddress((InetSocketAddress) channel.remoteAddress());
-        if(Configs.serverManageConnection()){
+        if(DoveConfigs.serverManageConnection()){
             // add connection to connection Manager
             this.connectionManager.add(new Connection(channel, url));
         }else{
@@ -159,7 +173,7 @@ public class DoveServer extends AbstractLifeCycle {
      * @param command {@link RemotingCommand}
      */
     public void sendOneway(Url url, RemotingCommand command){
-        if(Configs.serverManageConnection()){
+        if(DoveConfigs.serverManageConnection()){
             Connection connection = connectionManager.getConnection(url);
             baseRemoting.sendOneway(connection, command);
         }else{
