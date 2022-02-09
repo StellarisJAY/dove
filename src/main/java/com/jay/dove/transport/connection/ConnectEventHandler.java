@@ -59,7 +59,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if(log.isDebugEnabled()){
-            log.error("channel error: ", cause);
+            log.debug("channel error: ", cause);
         }
         this.userEventTriggered(ctx, ConnectEvent.EXCEPTION);
     }
