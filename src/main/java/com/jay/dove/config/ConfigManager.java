@@ -14,10 +14,10 @@ import java.util.Properties;
  * @date 2022/01/08 14:34
  */
 public class ConfigManager {
-    private static Properties properties = new Properties();
+    private static final Properties PROPERTIES = new Properties();
     static{
         try(InputStream inputStream = ConfigManager.class.getClassLoader().getResourceAsStream("dove.properties")){
-            properties.load(inputStream);
+            PROPERTIES.load(inputStream);
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -34,6 +34,10 @@ public class ConfigManager {
     }
 
     public static String get(String name){
-        return properties.getProperty(name);
+        return PROPERTIES.getProperty(name);
+    }
+
+    public static void set(String name, String value){
+        PROPERTIES.setProperty(name, value);
     }
 }

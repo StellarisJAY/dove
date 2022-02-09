@@ -1,6 +1,6 @@
 package com.jay.dove.transport.connection;
 
-import com.jay.dove.config.Configs;
+import com.jay.dove.config.DoveConfigs;
 import com.jay.dove.transport.Url;
 import io.netty.channel.*;
 import io.netty.util.Attribute;
@@ -97,7 +97,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
      */
     private void submitReconnectTask(Url url){
         // check config
-        if(Configs.enableReconnect() && reconnector != null){
+        if(DoveConfigs.enableReconnect() && reconnector != null){
             // do reconnect
             reconnector.reconnect(url);
         }

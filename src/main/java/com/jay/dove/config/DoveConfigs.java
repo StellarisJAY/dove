@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
  * @author Jay
  * @date 2021/12/31 10:12
  */
-public class Configs {
+public class DoveConfigs {
     /**
      * TCP NO DELAY OPTIONS
      */
@@ -76,6 +76,9 @@ public class Configs {
     public static final String SERVER_MANAGE_CONNECTION = "dove.server_manage_connection";
     public static final boolean SERVER_MANAGE_CONNECTION_DEFAULT = false;
 
+    public static final String ENABLE_SSL = "dove.enable_ssl";
+    public static final boolean ENABLE_SSL_DEFAULT = true;
+
     public static boolean soKeepAlive(){
         Boolean keepAlive = ConfigManager.getBoolean(TCP_SO_KEEP_ALIVE);
         return keepAlive != null ? keepAlive : TCP_SO_KEEP_ALIVE_DEFAULT;
@@ -119,5 +122,14 @@ public class Configs {
     public static boolean serverManageConnection(){
         Boolean manage = ConfigManager.getBoolean(SERVER_MANAGE_CONNECTION);
         return manage != null ? manage : SERVER_MANAGE_CONNECTION_DEFAULT;
+    }
+
+    public static boolean enableSsl(){
+        Boolean enable = ConfigManager.getBoolean(ENABLE_SSL);
+        return enable != null ? enable : ENABLE_SSL_DEFAULT;
+    }
+
+    public static void setEnableSsl(boolean enable){
+        ConfigManager.set(ENABLE_SSL, Boolean.toString(enable));
     }
 }

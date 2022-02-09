@@ -1,6 +1,6 @@
 package com.jay.dove.transport.command;
 
-import com.jay.dove.config.Configs;
+import com.jay.dove.config.DoveConfigs;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,7 +56,7 @@ public abstract class AbstractCommandHandler implements CommandHandler{
                 }
             };
             // check whether dispatch task to executor or not
-            if(Configs.dispatchListToExecutor() && getDefaultExecutor() != null){
+            if(DoveConfigs.dispatchListToExecutor() && getDefaultExecutor() != null){
                 // try submit task to executor
                 try{
                     getDefaultExecutor().submit(task);
