@@ -81,4 +81,8 @@ public class DoveClient {
     public CommandFactory getCommandFactory(){
         return commandFactory;
     }
+
+    public void shutdown(){
+        this.connectionManager.shutdown();
+    }
 }

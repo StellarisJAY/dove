@@ -27,4 +27,9 @@ public interface ConnectionFactory {
      * @throws Exception exceptions {@link java.net.ConnectException}
      */
     Connection create(Url url, int timeout) throws Exception;
+
+    /**
+     * shutdown connection factory's worker threads
+     */
+    void shutdown();
 }
