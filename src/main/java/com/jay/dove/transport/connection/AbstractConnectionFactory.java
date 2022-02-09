@@ -137,4 +137,9 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
 
         return future.channel();
     }
+
+    @Override
+    public void shutdown(){
+        this.worker.shutdownGracefully();
+    }
 }

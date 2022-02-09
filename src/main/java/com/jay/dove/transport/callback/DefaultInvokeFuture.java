@@ -43,8 +43,9 @@ public class DefaultInvokeFuture implements InvokeFuture{
 
     @Override
     public void putResponse(RemotingCommand response) {
-        countDownLatch.countDown();
+        // response必须在countDown之前赋值
         this.response = response;
+        countDownLatch.countDown();
         // callback
         this.executeCallback();
     }

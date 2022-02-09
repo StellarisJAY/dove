@@ -237,4 +237,8 @@ public class ConnectionManager {
             return pool.size();
         }
     }
+
+    public void shutdown(){
+        this.connectionFactory.shutdown();
+    }
 }
