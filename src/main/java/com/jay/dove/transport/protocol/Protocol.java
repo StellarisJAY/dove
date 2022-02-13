@@ -20,6 +20,12 @@ public interface Protocol {
     ProtocolEncoder getEncoder();
 
     /**
+     * get the MessageToMessage Encoder of this protocol
+     * @return {@link ProtocolM2mEncoder}
+     */
+    ProtocolM2mEncoder getM2mEncoder();
+
+    /**
      * get the decoder for this protocol
      * @return {@link ProtocolDecoder}
      */
