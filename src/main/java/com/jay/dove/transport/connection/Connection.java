@@ -3,7 +3,9 @@ package com.jay.dove.transport.connection;
 import com.jay.dove.transport.Url;
 import com.jay.dove.transport.callback.InvokeFuture;
 import com.jay.dove.transport.command.RemotingCommand;
+import com.jay.dove.transport.protocol.Protocol;
 import com.jay.dove.transport.protocol.ProtocolCode;
+import com.jay.dove.transport.protocol.ProtocolManager;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.AttributeKey;
@@ -83,6 +85,9 @@ public class Connection {
         }
     }
 
+    /**
+     * Connection closed callback
+     */
     public void onClose(){
         Iterator<Map.Entry<Integer, InvokeFuture>> iterator = invokeFutureMap.entrySet().iterator();
         while(iterator.hasNext()){
@@ -90,7 +95,10 @@ public class Connection {
             iterator.remove();
             InvokeFuture future = entry.getValue();
             if(future != null){
-                future.putResponse(null);
+                ProtocolCode code = channel.attr(PROTOCOL).get();
+                Protocol protocol = ProtocolManager.getProtocol(code);
+                // put connection closed response
+                future.putResponse(protocol.getCommandFactory().createExceptionResponse(0, "connection closed"));
             }
         }
     }

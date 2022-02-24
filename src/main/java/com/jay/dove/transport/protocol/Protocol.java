@@ -1,6 +1,7 @@
 package com.jay.dove.transport.protocol;
 
 import com.jay.dove.transport.HeartBeatTrigger;
+import com.jay.dove.transport.command.CommandFactory;
 import com.jay.dove.transport.command.CommandHandler;
 
 /**
@@ -18,6 +19,12 @@ public interface Protocol {
      * @return {@link ProtocolEncoder}
      */
     ProtocolEncoder getEncoder();
+
+    /**
+     * get the MessageToMessage Encoder of this protocol
+     * @return {@link ProtocolM2mEncoder}
+     */
+    ProtocolM2mEncoder getM2mEncoder();
 
     /**
      * get the decoder for this protocol
@@ -42,4 +49,10 @@ public interface Protocol {
      * @return {@link HeartBeatTrigger}
      */
     HeartBeatTrigger getHeartBeatTrigger();
+
+    /**
+     * get protocol's command factory
+     * @return {@link CommandFactory}
+     */
+    CommandFactory getCommandFactory();
 }
