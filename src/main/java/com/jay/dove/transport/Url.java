@@ -106,7 +106,7 @@ public class Url {
 
     private void parseArguments(){
         this.protocol = properties.get("protocol") == null ? 22 : Short.parseShort(properties.get("protocol"));
-        this.expectedConnectionCount = properties.get("conn") == null ? 1 :  Integer.parseInt(properties.get("conn"));
+        this.expectedConnectionCount = properties.get("conn") == null ? 10 :  Integer.parseInt(properties.get("conn"));
     }
 
     private void parsePoolKey(){
@@ -128,5 +128,10 @@ public class Url {
     @Override
     public int hashCode() {
         return Objects.hash(ip, port);
+    }
+
+    @Override
+    public String toString() {
+        return originalUrl;
     }
 }

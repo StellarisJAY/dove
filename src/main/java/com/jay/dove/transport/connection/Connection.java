@@ -98,9 +98,10 @@ public class Connection {
                 ProtocolCode code = channel.attr(PROTOCOL).get();
                 Protocol protocol = ProtocolManager.getProtocol(code);
                 // put connection closed response
-                future.putResponse(protocol.getCommandFactory().createExceptionResponse(0, "connection closed"));
+                future.putResponse(protocol.getCommandFactory().createExceptionResponse(entry.getKey(), "connection closed"));
             }
         }
+        this.closed.set(true);
     }
 
     public void putResponse(RemotingCommand response){

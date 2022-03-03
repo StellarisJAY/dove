@@ -47,11 +47,8 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
         if(attr != null){
             Connection connection = attr.get();
             // check if connection manager present, server-side may be absent
-            if(connection != null && connectionManager != null){
-                // remove inactive connection
-                connectionManager.remove(connection);
-                // fires CLOSE Event
-                userEventTriggered(ctx, ConnectEvent.CLOSE);
+            if(connection != null){
+                connection.onClose();
             }
         }
     }
@@ -81,10 +78,6 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
                 case CONNECT:
                 case EXCEPTION:
                     onEvent(connection, event);break;
-                case CONNECT_FAIL:
-                case CLOSE: submitReconnectTask(connection.getUrl());
-                            onEvent(connection, event);
-                            break;
                 default:break;
             }
         }
@@ -93,7 +86,6 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
 
     /**
      * submit a re-connect task
-     * @param address Target address
      */
     private void submitReconnectTask(Url url){
         // check config
