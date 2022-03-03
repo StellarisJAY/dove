@@ -1,5 +1,6 @@
 package com.jay.dove.transport.connection;
 
+import com.jay.dove.config.DoveConfigs;
 import com.jay.dove.transport.Url;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,12 +61,28 @@ public class ConnectionPool {
 
     /**
      * get a connection using select strategy
+     * @param asyncExecutor {@link ExecutorService} executor to heal connection pool if needed
      * @return {@link Connection}
      */
-    public Connection getConnection(){
+    public Connection getConnection(ExecutorService asyncExecutor){
+        ensureConnected(asyncExecutor);
         ArrayList<Connection> snapshot = new ArrayList<>(this.connections);
         // select a connection
         return selectStrategy.select(snapshot);
+    }
+
+    /**
+     * make sure the connection pool is all connected
+     * This method will be called before getConnection then remove all closed connections.
+     * @param asyncExecutor {@link ExecutorService} executor to heal connection pool
+     */
+    private void ensureConnected(ExecutorService asyncExecutor){
+        // remove close connections
+        connections.removeIf(Connection::isClosed);
+        if(!warmingUp.get() && connections.size() < url.getExpectedConnectionCount()){
+            // heal connection pool
+            this.healConnectionPool(asyncExecutor, url.getExpectedConnectionCount(), DoveConfigs.connectTimeout(), 1);
+        }
     }
 
     @Deprecated
@@ -79,9 +96,19 @@ public class ConnectionPool {
      * heal a connection pool using an executor
      * @param executor {@link ExecutorService}
      * @param timeout connect timeout
+     * @param expectedCount expected connection count
+     * @param syncCount  sync create count
      */
-    public void healConnectionPool(ExecutorService executor, int expectedCount, int timeout) {
+    public void healConnectionPool(ExecutorService executor, int expectedCount, int timeout, int syncCount) {
         markAsyncWarmUpStart();
+        try{
+            for(int i = 0; i < syncCount; i++){
+                Connection connection = connectionFactory.create(url, timeout);
+                connections.add(connection);
+            }
+        }catch (Exception e){
+            log.error("connection pool sync warn up failed ", e);
+        }
         Runnable warmUpTask = ()->{
             long startTime = System.currentTimeMillis();
             for (int cur = connections.size(); cur < expectedCount; cur++){
@@ -99,6 +126,7 @@ public class ConnectionPool {
             // finish warming up
             markAsyncWarmUpDone();
         };
+
         // submit task to executor
         executor.submit(warmUpTask);
     }

@@ -97,7 +97,7 @@ public class ConnectionManager {
         RunStateRecordedFutureTask<ConnectionPool> future = connPoolTasks.get(url.getPoolKey());
         // get pool from task
         ConnectionPool connectionPool = FutureTaskUtil.getFutureTaskResult(future);
-        return connectionPool != null ? connectionPool.getConnection() : null;
+        return connectionPool != null ? connectionPool.getConnection(asyncConnectExecutor) : null;
     }
 
     /**
@@ -108,7 +108,7 @@ public class ConnectionManager {
      */
     public Connection getConnectionAndCreateIfAbsent(Url url){
         ConnectionPool pool = getConnectionPoolAndCreateIfAbsent(url);
-        return pool != null ? pool.getConnection() : null;
+        return pool != null ? pool.getConnection(asyncConnectExecutor) : null;
     }
 
     /**
@@ -200,15 +200,8 @@ public class ConnectionManager {
             ConnectionPool pool = new ConnectionPool(url, connectionFactory, new RandomSelectStrategy());
             int expectedPoolSize = url.getExpectedConnectionCount();
             int connTimeOut = DoveConfigs.connectTimeout();
-            if(syncCreateConnCount > 0){
-                // sync create some connections
-                for (int i = 0; i < syncCreateConnCount; i++){
-                    Connection connection = connectionFactory.create(url, connTimeOut);
-                    pool.add(connection);
-                }
-            }
             // async heal connection pool
-            pool.healConnectionPool(asyncConnectExecutor, expectedPoolSize, connTimeOut);
+            pool.healConnectionPool(asyncConnectExecutor, expectedPoolSize, connTimeOut, syncCreateConnCount);
             return pool;
         }
     }
@@ -229,7 +222,7 @@ public class ConnectionManager {
         public Integer call() {
             try{
                 // call connection pool's heal()
-                pool.healConnectionPool(asyncConnectExecutor, expectedCount, DoveConfigs.connectTimeout());
+                pool.healConnectionPool(asyncConnectExecutor, expectedCount, DoveConfigs.connectTimeout(), 0);
             }catch (Exception e){
                 throw new RuntimeException(e);
             }
