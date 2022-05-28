@@ -29,4 +29,15 @@ public class CommandChannelHandler extends ChannelInboundHandlerAdapter {
         }
         ctx.fireChannelRead(msg);
     }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        // get the protocol of this channel
+        Attribute<ProtocolCode> attr = ctx.channel().attr(Connection.PROTOCOL);
+        if(attr.get() != null){
+            Protocol protocol = ProtocolManager.getProtocol(attr.get());
+            // call protocol's command handler
+            protocol.getCommandHandler().channelInactive(ctx);
+        }
+    }
 }

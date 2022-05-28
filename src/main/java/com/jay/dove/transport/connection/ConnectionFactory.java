@@ -2,7 +2,7 @@ package com.jay.dove.transport.connection;
 
 import com.jay.dove.transport.Url;
 
-import java.net.InetSocketAddress;
+import java.net.ConnectException;
 
 /**
  * <p>
@@ -24,9 +24,10 @@ public interface ConnectionFactory {
      * @param url target url {@link Url}
      * @param timeout timeout mille seconds
      * @return {@link Connection}
-     * @throws Exception exceptions {@link java.net.ConnectException}
+     * @throws IllegalArgumentException url or timeout illegal
+     * @throws ConnectException connect exception
      */
-    Connection create(Url url, int timeout) throws Exception;
+    Connection create(Url url, int timeout) throws IllegalArgumentException, ConnectException;
 
     /**
      * shutdown connection factory's worker threads
