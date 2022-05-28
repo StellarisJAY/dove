@@ -1,7 +1,5 @@
 package com.jay.dove.transport.command;
 
-import com.jay.dove.transport.connection.Connection;
-
 /**
  * <p>
  *  Default command factory interface
@@ -21,6 +19,16 @@ public interface CommandFactory {
     RemotingCommand createRequest(Object requestBody, CommandCode commandCode);
 
     /**
+     * create a request with serializable request body
+     * @param requestBody serializable request body
+     * @param commandCode {@link CommandCode}
+     * @param clazz Class
+     * @param <T> Type
+     * @return {@link RemotingCommand}
+     */
+    <T> RemotingCommand createRequest(T requestBody, CommandCode commandCode, Class<T> clazz);
+
+    /**
      * create a response with response body and command code
      * @param id request id
      * @param response response body
@@ -29,6 +37,18 @@ public interface CommandFactory {
      */
     RemotingCommand createResponse(int id, Object response, CommandCode commandCode);
 
+    /**
+     * create a response with serializer
+     * @param id response id
+     * @param content response entity to be serialized
+     * @param clazz response entity clazz
+     * @param commandCode {@link CommandCode}
+     * @param <T> response entity type
+     * @return {@link RemotingCommand}
+     */
+    default <T> RemotingCommand createResponse(int id, T content, Class<T> clazz, CommandCode commandCode){
+        return null;
+    }
     /**
      * create a timeout response
      * @param id request id

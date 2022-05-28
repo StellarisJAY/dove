@@ -8,6 +8,7 @@ import com.jay.dove.util.NamedThreadFactory;
 import com.jay.dove.util.RunStateRecordedFutureTask;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.ConnectException;
 import java.util.concurrent.*;
 
 /**
@@ -50,30 +51,14 @@ public class ConnectionManager {
         this.connectionFactory.init();
     }
 
-    /**
-     * remove a dead connection
-     * @param connection connection
-     */
-    public void remove(Connection connection){
-        String poolKey = connection.getPoolKey();
-        // get connection pool
-        RunStateRecordedFutureTask<ConnectionPool> task = connPoolTasks.get(poolKey);
-        ConnectionPool pool;
-        if(task == null || (pool = FutureTaskUtil.getFutureTaskResult(task)) == null){
-            // connection pool absent
-            log.warn("remove standalone connection {}", connection);
-        }else{
-            // remove connection in pool
-            pool.remove(connection);
-        }
-        // close connection
-        connection.close();
-    }
-
-    public void add(Connection connection){
-        ConnectionPool pool = this.getConnectionPoolAndCreateIfAbsent(connection.getUrl());
-        if(pool != null){
-            pool.add(connection);
+    public void add(Connection connection)  {
+        try{
+            ConnectionPool pool = this.getConnectionPoolAndCreateIfAbsent(connection.getUrl());
+            if(pool != null){
+                pool.add(connection);
+            }
+        }catch (ConnectException e){
+            throw new RuntimeException("Create connect pool failed", e);
         }
     }
 
@@ -92,12 +77,17 @@ public class ConnectionManager {
      * @param url {@link Url}
      * @return {@link Connection}
      */
-    public Connection getConnection(Url url) {
+    public Connection getConnection(Url url) throws ConnectException {
         // get connection pool creation task
         RunStateRecordedFutureTask<ConnectionPool> future = connPoolTasks.get(url.getPoolKey());
         // get pool from task
-        ConnectionPool connectionPool = FutureTaskUtil.getFutureTaskResult(future);
-        return connectionPool != null ? connectionPool.getConnection(asyncConnectExecutor) : null;
+        try{
+            ConnectionPool connectionPool = FutureTaskUtil.getFutureTaskResult(future);
+            return connectionPool != null ? connectionPool.getConnection(asyncConnectExecutor) : null;
+        }catch (Exception e){
+            throw new ConnectException("Connect error");
+        }
+
     }
 
     /**
@@ -106,7 +96,7 @@ public class ConnectionManager {
      * @param url {@link Url}
      * @return {@link Connection}
      */
-    public Connection getConnectionAndCreateIfAbsent(Url url){
+    public Connection getConnectionAndCreateIfAbsent(Url url) throws ConnectException{
         ConnectionPool pool = getConnectionPoolAndCreateIfAbsent(url);
         return pool != null ? pool.getConnection(asyncConnectExecutor) : null;
     }
@@ -116,7 +106,7 @@ public class ConnectionManager {
      * @param url {@link Url} target url
      * @return {@link ConnectionPool}
      */
-    public ConnectionPool getConnectionPoolAndCreateIfAbsent(Url url){
+    public ConnectionPool getConnectionPoolAndCreateIfAbsent(Url url) throws ConnectException{
         if(connPoolTasks.get(url.getPoolKey()) == null){
             // no cached conn pool task
             RunStateRecordedFutureTask<ConnectionPool> task = new RunStateRecordedFutureTask<>(new CreatePoolCallable(url, 1));
@@ -128,8 +118,13 @@ public class ConnectionManager {
         }
         // get cached task
         RunStateRecordedFutureTask<ConnectionPool> connTask = connPoolTasks.get(url.getPoolKey());
-        // get task result
-        return FutureTaskUtil.getFutureTaskResult(connTask);
+        try{
+            // get task result
+            return FutureTaskUtil.getFutureTaskResult(connTask);
+        }catch (Exception e){
+            connPoolTasks.remove(url.getPoolKey());
+            throw new ConnectException("connect error");
+        }
     }
 
     /**

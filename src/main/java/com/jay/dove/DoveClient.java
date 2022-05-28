@@ -9,6 +9,8 @@ import com.jay.dove.transport.command.RemotingCommand;
 import com.jay.dove.transport.connection.Connection;
 import com.jay.dove.transport.connection.ConnectionManager;
 
+import java.net.ConnectException;
+
 /**
  * <p>
  *  Dove basic client.
@@ -37,7 +39,7 @@ public class DoveClient {
      * @param url {@link Url}
      * @param command {@link RemotingCommand}
      */
-    public void sendOneway(Url url, RemotingCommand command){
+    public void sendOneway(Url url, RemotingCommand command) throws ConnectException {
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         this.baseRemoting.sendOneway(connection, command);
     }
@@ -50,7 +52,7 @@ public class DoveClient {
      * @return {@link RemotingCommand}
      * @throws InterruptedException await response interrupted
      */
-    public RemotingCommand sendSync(Url url, RemotingCommand command, InvokeCallback callback) throws InterruptedException {
+    public RemotingCommand sendSync(Url url, RemotingCommand command, InvokeCallback callback) throws InterruptedException, ConnectException {
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         return this.baseRemoting.sendSync(connection, command, callback);
     }
@@ -62,7 +64,7 @@ public class DoveClient {
      * @param callback {@link InvokeCallback}
      * @return {@link InvokeFuture}
      */
-    public InvokeFuture sendFuture(Url url, RemotingCommand command, InvokeCallback callback){
+    public InvokeFuture sendFuture(Url url, RemotingCommand command, InvokeCallback callback) throws ConnectException{
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         return this.baseRemoting.sendFuture(connection, command, callback);
     }
@@ -73,7 +75,7 @@ public class DoveClient {
      * @param command {@link RemotingCommand}
      * @param callback {@link InvokeCallback}
      */
-    public void sendAsync(Url url, RemotingCommand command, InvokeCallback callback){
+    public void sendAsync(Url url, RemotingCommand command, InvokeCallback callback) throws ConnectException{
         Connection connection = connectionManager.getConnectionAndCreateIfAbsent(url);
         this.baseRemoting.sendAsync(connection, command, callback);
     }

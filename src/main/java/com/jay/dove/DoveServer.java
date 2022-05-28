@@ -24,6 +24,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Attribute;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
@@ -172,7 +173,7 @@ public class DoveServer extends AbstractLifeCycle {
      * @param url {@link Url}
      * @param command {@link RemotingCommand}
      */
-    public void sendOneway(Url url, RemotingCommand command){
+    public void sendOneway(Url url, RemotingCommand command) throws ConnectException {
         if(DoveConfigs.serverManageConnection()){
             Connection connection = connectionManager.getConnection(url);
             baseRemoting.sendOneway(connection, command);

@@ -15,15 +15,9 @@ import java.util.concurrent.FutureTask;
  */
 @Slf4j
 public class FutureTaskUtil {
-    public static <T> T getFutureTaskResult(RunStateRecordedFutureTask<T> futureTask){
+    public static <T> T getFutureTaskResult(RunStateRecordedFutureTask<T> futureTask) throws Exception{
         if(futureTask != null){
-            try{
-                return futureTask.get();
-            } catch (ExecutionException | InterruptedException e) {
-                log.error("future task error, ", e);
-            }catch (IllegalStateException e){
-                log.error("future task run state error, ", e);
-            }
+            return futureTask.getResult();
         }
         return null;
     }

@@ -11,15 +11,12 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.net.ConnectException;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * <p>
@@ -114,7 +111,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
 
 
     @Override
-    public Connection create(Url url, int timeout) throws Exception {
+    public Connection create(Url url, int timeout) throws IllegalArgumentException, ConnectException {
         // check arguments
         if(StringUtil.isNullOrEmpty(url.getIp()) || url.getPort() <= 0){
             throw new IllegalArgumentException("invalid socket address");
@@ -132,9 +129,9 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
      * @param port port
      * @param timeout timeout ms
      * @return {@link Channel}
-     * @throws Exception exceptions {@link ConnectException}
+     * @throws ConnectException connect errors
      */
-    private Channel doCreateConnection(String ip, int port, int timeout) throws Exception{
+    private Channel doCreateConnection(String ip, int port, int timeout) throws ConnectException{
         // set connect timeout
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout);
         ChannelFuture future = bootstrap.connect(ip, port);

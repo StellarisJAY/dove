@@ -47,8 +47,6 @@ public class BaseRemoting implements Remoting{
         channel.writeAndFlush(command).addListener((ChannelFutureListener)future->{
             if(!future.isSuccess()){
                 log.warn("oneway request failed, command: {}, connection: {}", command, connection);
-            }else{
-                log.info("oneway request sent, command: {}", command);
             }
         });
     }
