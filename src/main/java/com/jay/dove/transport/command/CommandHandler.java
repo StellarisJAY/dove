@@ -39,4 +39,6 @@ public interface CommandHandler {
      * @param executor {@link ExecutorService}
      */
     void registerDefaultExecutor(ExecutorService executor);
+
+    void channelInactive(ChannelHandlerContext context);
 }
