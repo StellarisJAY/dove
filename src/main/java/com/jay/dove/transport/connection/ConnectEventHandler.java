@@ -1,10 +1,9 @@
 package com.jay.dove.transport.connection;
 
-import com.jay.dove.config.DoveConfigs;
-import com.jay.dove.transport.Url;
 import io.netty.channel.*;
 import io.netty.util.Attribute;
 import lombok.extern.slf4j.Slf4j;
+
 import java.net.SocketAddress;
 
 /**
@@ -21,7 +20,6 @@ import java.net.SocketAddress;
 @ChannelHandler.Sharable
 public class ConnectEventHandler extends ChannelDuplexHandler {
 
-    private Reconnector reconnector;
     private ConnectionManager connectionManager;
 
     @Override
@@ -48,6 +46,7 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
             Connection connection = attr.get();
             // check if connection manager present, server-side may be absent
             if(connection != null){
+                connectionManager.removeConnectionPool(connection.getPoolKey());
                 connection.onClose();
             }
         }
@@ -77,39 +76,12 @@ public class ConnectEventHandler extends ChannelDuplexHandler {
             switch(event){
                 case CONNECT:
                 case EXCEPTION:
-                    onEvent(connection, event);break;
                 default:break;
             }
         }
         super.userEventTriggered(ctx, evt);
     }
 
-    /**
-     * submit a re-connect task
-     */
-    private void submitReconnectTask(Url url){
-        // check config
-        if(DoveConfigs.enableReconnect() && reconnector != null){
-            // do reconnect
-            reconnector.reconnect(url);
-        }
-    }
-
-    private void onEvent(Connection connection, ConnectEvent event){
-
-    }
-
-    public Reconnector getReconnector() {
-        return reconnector;
-    }
-
-    public void setReconnector(Reconnector reconnector) {
-        this.reconnector = reconnector;
-    }
-
-    public ConnectionManager getConnectionManager() {
-        return connectionManager;
-    }
 
     public void setConnectionManager(ConnectionManager connectionManager) {
         this.connectionManager = connectionManager;

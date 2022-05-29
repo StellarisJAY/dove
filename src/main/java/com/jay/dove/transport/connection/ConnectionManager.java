@@ -49,6 +49,8 @@ public class ConnectionManager {
         this.connectionFactory = connectionFactory;
         // init connection factory
         this.connectionFactory.init();
+        // bind manager with factory
+        this.connectionFactory.setConnectionManager(this);
     }
 
     public void add(Connection connection)  {
@@ -68,8 +70,20 @@ public class ConnectionManager {
      * @return {@link Connection}
      * @throws Exception exceptions
      */
+    @Deprecated
     public Connection createConnection(Url url) throws Exception {
         return this.connectionFactory.create(url, DoveConfigs.connectTimeout());
+    }
+
+    /**
+     * Close connection pool or connect tasks
+     * @param poolKey connection pool key
+     */
+    public void removeConnectionPool(String poolKey) {
+        RunStateRecordedFutureTask<ConnectionPool> task = connPoolTasks.remove(poolKey);
+        task.cancel(true);
+        FutureTask<Integer> healTask = healTasks.remove(poolKey);
+        healTask.cancel(true);
     }
 
     /**

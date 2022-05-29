@@ -44,7 +44,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     /**
      * connect event handler
      */
-    private final ChannelHandler connectEventHandler;
+    private final ConnectEventHandler connectEventHandler;
 
     /**
      * protocol code of this connection factory
@@ -60,11 +60,11 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     private final EventLoopGroup worker = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() + 1,
             new NamedThreadFactory("dove-client-worker", true));
 
-    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode, ChannelHandler connectEventHandler) {
+    public AbstractConnectionFactory(Codec codec, ProtocolCode protocolCode) {
         this.codec = codec;
         this.protocolCode = protocolCode;
         this.heartBeatHandler = new HeartBeatHandler();
-        this.connectEventHandler = connectEventHandler;
+        this.connectEventHandler = new ConnectEventHandler();
         if(DoveConfigs.enableSsl()){
             // create ssl context here
         }
@@ -158,5 +158,10 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory{
     @Override
     public void shutdown(){
         this.worker.shutdownGracefully();
+    }
+
+    @Override
+    public void setConnectionManager(ConnectionManager connectionManager) {
+        this.connectEventHandler.setConnectionManager(connectionManager);
     }
 }
