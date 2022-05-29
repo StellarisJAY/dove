@@ -33,4 +33,6 @@ public interface ConnectionFactory {
      * shutdown connection factory's worker threads
      */
     void shutdown();
+
+    void setConnectionManager(ConnectionManager connectionManager);
 }
